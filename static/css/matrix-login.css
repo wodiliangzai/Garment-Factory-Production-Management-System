@@ -1,0 +1,177 @@
+html, body {    width: 100%;    height: 100%;}
+/*Bootstrap-overlay*/
+
+body {
+ overflow-x: hidden;
+ margin-top: -10px;  font-family: 'Open Sans', sans-serif; font-size:12px; color:#666;
+}
+a{color:#666;}
+a:hover, a:focus {
+ text-decoration: none; color:#28b779;
+}
+.dropdown-menu .divider{ margin:4px 0px;}
+.dropdown-menu{ min-width:180px;}
+.dropdown-menu > li > a{ padding:3px 10px; color:#666; font-size:12px;}
+.dropdown-menu > li > a i{ padding-right:3px;}
+.userphoto img{ width:19px; height:19px;}
+select, textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input, .label, .dropdown-menu, .btn, .well, .progress, .table-bordered, .btn-group > .btn:first-child, .btn-group > .btn:last-child, .btn-group > .btn:last-child, .btn-group > .dropdown-toggle, .alert{ border-radius:0px;}
+.btn, textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input{ box-shadow:none;}
+.progress, .progress-success .bar, .progress .bar-success, .progress-warning .bar, .progress .bar-warning, .progress-danger .bar, .progress .bar-danger, .progress-info .bar, .progress .bar-info, .btn, .btn-primary{background-image:none;}
+.accordion-heading h5{ width:70%; }
+.form-horizontal .form-actions{ padding-left:20px; }
+#footer{ padding:10px; text-align:center;}
+hr{ border-top-color:#dadada;}
+.carousel{ margin-bottom:0px;}
+.fl { float:left}
+.fr {float:right}
+.label-important, .badge-important{ background:#f74d4d;}
+
+/*Metro Background color class*/
+.bg_lb{ background:#27a9e3;}
+.bg_db{ background:#2295c9;}
+.bg_lg{ background:#28b779;}
+.bg_dg{ background:#28b779;}
+.bg_ly{ background:#ffb848;}
+.bg_dy{ background:#da9628;}
+.bg_ls{ background:#2255a4;}
+.bg_lo{ background:#da542e;}
+.bg_lr{ background:#f74d4d;}
+.bg_lv{ background:#603bbc;}
+.bg_lh{ background:#b6b3b3;}
+
+body { background-color:#2E363F;    padding: 0;    margin-top:10%;}
+#logo, #loginbox {    width: 32%;    margin-left: auto;    margin-right: auto;    position: relative;}
+#logo img {  margin: 0 auto;    display: block;}
+#loginbox { overflow: hidden !important;    text-align: left;    position: relative; }
+#loginbox form{ width:100%; background:#2E363F; position:relative; top:0; left:0; }
+#loginbox .form-actions { padding: 14px 20px 15px;}
+#loginbox .form-actions .pull-left { margin-top:0px;}
+#loginbox form#loginform { z-index: 200; display:block;}
+#loginbox form#recoverform { z-index: 100;     display:none;}
+#loginbox form#recoverform .form-actions {    margin-top: 10px;}
+#loginbox .main_input_box { margin:0 auto; text-align:center; font-size:13px;}
+#loginbox .main_input_box .add-on{  padding:9px 9px; *line-height:31px; color:#fff;  width:30px; display:inline-block;}
+#loginbox .main_input_box input{ height:30px; border:0px; display:inline-block; width:75%; line-height:28px;  margin-bottom:3px;}
+#loginbox .controls{ padding:0 20px;}
+#loginbox .control-group{ padding:20px 0; margin-bottom:0px;}
+.form-vertical, .form-actions {  margin-bottom: 0; background:none; border-top:1px solid #3f4954; }
+#loginbox .normal_text{ 
+  /* 原来样式（保留必要部分） */
+  padding:15px 10px; 
+  text-align:center; 
+  font-size:14px; 
+  line-height:20px; 
+  background:#2E363F; 
+  color:#fff; 
+
+  /* 新增：水平排列图片和文字并垂直居中 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;           /* 图片与文字间距，根据需要调整 */
+}
+/* 缩小并保持图片比例 */
+#loginbox .normal_text .main__bg{
+  width:48px;          /* 调整为合适大小 */
+  height:48px;
+  object-fit: contain;
+  display: inline-block;
+}
+#loginbox .main_input_box.captcha-box {
+  font-size: 0;        
+  white-space: nowrap;
+  display: block;      /* 保持与其他行一致的块级布局 */
+}
+
+/* 2. 恢复内部元素的字体大小（因为容器设为了0） */
+#loginbox .main_input_box.captcha-box .add-on,
+#loginbox .main_input_box.captcha-box input {
+  font-size: 14px;
+}
+
+/* 3. 输入框：宽度由 75% 减小为 55%，腾出空间给图片 */
+#loginbox .main_input_box.captcha-box input#captcha-input {
+  width: 57%;          
+  margin: 0;           /* 去除边距，紧贴图片 */
+  border-radius: 0;    /* 去除圆角 */
+  vertical-align: top; /* 顶部对齐 */
+  height: 38px;        /* 强制高度 */
+  line-height: 30px;
+  box-sizing: border-box; /* 边框计算在宽度内 */
+}
+
+/* 4. 图片：占据剩余的 20% 宽度，高度与输入框严格一致 */
+#loginbox .main_input_box.captcha-box img#captcha-img,
+#loginbox .main_input_box.captcha-box img#captchaimg {
+  width: 21%;          /* 55% + 20% = 75% (与其他行总宽一致) */
+  height: 38px;        /* 高度强制为 30px */
+  display: inline-block;
+  vertical-align: top;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+#loginbox .main_input_box.email-code-box {
+  font-size: 0;
+  white-space: nowrap;
+  display: block;
+}
+
+/* 2. 恢复字体大小 */
+#loginbox .main_input_box.email-code-box .add-on,
+#loginbox .main_input_box.email-code-box input,
+#loginbox .main_input_box.email-code-box button {
+  font-size: 13px;
+}
+
+/* 3. 输入框：宽度设为 55% (留 20% 给按钮)，高度强制 30px */
+#loginbox .main_input_box.email-code-box input {
+  width: 58%;
+  margin: 0;
+  border-radius: 0;
+  vertical-align: top;
+  height: 38px;        /* 与上方普通输入框高度完全一致 */
+  line-height: 30px;
+  box-sizing: border-box;
+  display: inline-block;
+}
+
+/* 4. 按钮：宽度 20% (55+20=75%，与上方对齐)，高度强制 30px */
+#loginbox .main_input_box.email-code-box button.btn-get-code {
+  width: 20%;
+  height: 38px;        /* 高度与输入框一致 */
+  line-height: 30px;   /* 文字垂直居中 */
+  vertical-align: top;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #28b779; /* 绿色背景 */
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  border-radius: 0;
+}
+
+/* 按钮悬停效果 */
+#loginbox .main_input_box.email-code-box button.btn-get-code:hover {
+  background: #24a56d;
+}
+
+@media (max-width:800px){
+#logo { width: 60%; }
+#loginbox{ width:80%}
+}
+@media (max-width: 480px){
+#logo { width: 40%; }
+#loginbox{ width:90%}
+#loginbox .control-group{ padding:8px 0; margin-bottom:0px;}
+#loginbox .normal_text .main__bg{
+    width:40px;
+    height:40px;
+  }
+#loginbox .normal_text{ font-size:13px; gap:8px; }
+#loginbox .main_input_box.captcha-box img#captcha-img{ height:32px; }
+#loginbox .main_input_box.email-code-box input { width: calc(100% - 110px); }
+#loginbox .main_input_box.email-code-box button.btn-get-code { width: 80px; }
+}

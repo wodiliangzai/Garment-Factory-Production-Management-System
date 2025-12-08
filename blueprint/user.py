@@ -1,0 +1,269 @@
+from flask import Blueprint,render_template,jsonify,redirect,url_for,session,request,render_template_string,flash
+from forms import LoginForm,UpdateuserForm,AdduserForm,ForgotpwdForm,AddcharacterForm,AltercharacterForm
+from werkzeug.security import generate_password_hash,check_password_hash #加密与检查密码
+from PIL import Image, ImageDraw, ImageFont
+import random
+import io
+from exts import db, mail
+from flask_mail import Message
+from datetime import datetime
+import string
+from models import UserModel,CharacterModel
+
+user_bp=Blueprint('user',__name__,url_prefix='/user')
+
+#生成图像验证码
+@user_bp.route('/captcha')
+def captcha():
+    # 生成验证码图片
+    image = Image.new('RGB', (120, 30), color=(73, 109, 137))
+
+    font_path = "../static/arial.ttf"  # 注意：你需要一个字体文件
+    fnt = ImageFont.truetype(font_path, 20)
+    d = ImageDraw.Draw(image)
+
+    captcha_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    d.text((10, 10), captcha_text, font=fnt, fill=(255, 255, 0))
+
+    # 添加干扰线条
+    for _ in range(random.randint(10, 15)):  # 10到15条线条
+        start = (random.randint(0, image.width), random.randint(0, image.height))
+        end = (random.randint(0, image.width), random.randint(0, image.height))
+        d.line([start, end], fill=(random.randint(50, 200), random.randint(50, 200), random.randint(50, 200)))
+
+    # 添加噪点
+    for _ in range(500):  # 添加500个噪点
+        xy = (random.randrange(0, image.width), random.randrange(0, image.height))
+        d.point(xy, fill=(random.randint(50, 200), random.randint(50, 200), random.randint(50, 200)))
+
+    session['img_captcha'] = captcha_text
+
+    buf = io.BytesIO()
+    image.save(buf, format='PNG')
+    buf.seek(0)
+    return buf.getvalue(), 200, {
+        'Content-Type': 'image/png',
+        'Content-Length': str(len(buf.getvalue()))
+    }
+
+# 获取邮箱验证码
+@user_bp.post('/captcha/email')
+def get_email_captcha():
+    # 从POST请求的表单数据中获取email
+    username=request.form.get('username')
+    email = request.form.get('email')
+    if not UserModel.query.filter_by(username=username,email=email).first():
+        return jsonify({"code": 400, "message": "用户名和邮箱不匹配", "data": None})
+    # 生成随机验证码并发送邮件
+    captcha = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    message = Message(subject="一帆制衣邮箱验证码", recipients=[email], body=f"您的验证码是：{captcha}")
+    mail.send(message)
+    session['mail_captcha'] = captcha
+    return jsonify({"code": 200, "message": "", "data": None})
+
+@user_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for("user.login"))
+
+@user_bp.route('/login',methods=['GET','POST'])
+def login():
+    loginform=LoginForm()
+    forgotpwdform=ForgotpwdForm()
+    if request.method=='GET':
+        session.pop('mail_captcha', None)  
+        return render_template('login.html',form=loginform,form2=forgotpwdform)
+    else:
+        if loginform.validate():
+            username=loginform.username.data
+            password=loginform.password.data
+            
+            user=UserModel.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password,password):
+                session['username']=user.username
+                session.pop('img_captcha', None)  # 删除img_captcha
+                return redirect(url_for('home'))
+            else:
+                return render_template('login.html', form=loginform, form2=forgotpwdform,error_msgs=["用户名或密码错误，请重新输入！"])
+        else:
+            # 收集所有错误信息
+            error_msgs = []
+            for field_errors in loginform.errors.values():
+                error_msgs.extend(field_errors)
+            # 传递到模板
+            return render_template('login.html', form=loginform, form2=forgotpwdform,error_msgs=error_msgs)
+        
+@user_bp.post('/forgotpwd')
+def forgotpwd():
+    forgotpwdform=ForgotpwdForm()
+    if forgotpwdform.validate():
+        username=forgotpwdform.username.data
+        email=forgotpwdform.email.data
+        
+        user=UserModel.query.filter_by(username=username,email=email).first()
+        if user:
+            session['reset_username']=user.username
+            session.pop('mail_captcha', None)  
+            session.pop('img_captcha', None)  
+            return jsonify({'code':200,'msg':'信息正确'})
+        else:
+            return jsonify({"code": 400, "message": "用户名和邮箱不匹配", "data": None})
+
+    else:
+        error_msgs = []
+        for field, errors in forgotpwdform.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        return jsonify({"code": 400, "message": "; ".join(error_msgs), "data": None})
+
+@user_bp.post('/resetpwd')
+def resetpwd():
+    username=session.get('reset_username')
+    password=request.form.get('password')
+    if not username:
+        return jsonify({'code':400,'msg':'会话已过期，请重新验证身份'})
+    user = UserModel.query.get(username)
+    user.password = generate_password_hash(password)
+    db.session.commit()
+    session.pop('reset_username', None)
+    return jsonify({'code':200,'msg':'密码重置成功'})
+
+@user_bp.route('/usermanage')
+def usermanage():
+    updateuserForm=UpdateuserForm()
+    adduserForm=AdduserForm()
+    users=UserModel.query.all()
+    return render_template('usermanage.html',users=users,updateuserForm=updateuserForm,adduserForm=adduserForm)
+
+@user_bp.post('/updateuser/<string:hide_username>')
+def updateuser(hide_username):
+    updateuserForm=UpdateuserForm()
+    if updateuserForm.validate():
+        data = updateuserForm.data
+        user = UserModel.query.filter_by(username=hide_username).first()
+        if user:
+            newname=data['username']
+            if newname!=hide_username and UserModel.query.filter_by(username=newname).first():
+                flash("修改失败：用户名已存在", "error") # 使用 flash 消息
+                return redirect(url_for('user.usermanage'))
+            
+            user.username = newname
+            user.realname = data['realname']
+            user.email = data['email']
+            db.session.commit()
+            flash("用户信息修改成功", "success")
+            return redirect(url_for('user.usermanage'))
+        else:
+            flash("修改失败：用户已不存在", "error")
+            return redirect(url_for('user.usermanage'))
+    else:
+        error_msgs = []
+        for field, errors in updateuserForm.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        flash("修改用户失败："+ "; ".join(error_msgs), "error")
+        return redirect(url_for('user.usermanage'))
+        
+@user_bp.post('/adduser')
+def adduser():
+    adduserForm=AdduserForm()
+    if adduserForm.validate():
+        data = adduserForm.data
+        if UserModel.query.filter_by(username=data['required']).first():
+            flash("添加失败：用户名已存在", "error") # 使用 flash 消息
+            return redirect(url_for('user.usermanage'))
+        
+        new_user = UserModel(
+            username=data['required'],
+            realname=data['realname'],
+            email=data['email'],
+            password=generate_password_hash(data['pwd']),
+            effectivedate=datetime.now()
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash("用户添加成功", "success")
+        return redirect(url_for('user.usermanage'))
+    else:
+        error_msgs = []
+        for field, errors in adduserForm.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        flash("用户添加失败："+ "; ".join(error_msgs), "error")
+        return redirect(url_for('user.usermanage'))
+    
+@user_bp.post('/verification')
+def userverification():
+    username=request.form.get('username')
+    password=request.form.get('password')
+    user=UserModel.query.filter_by(username=username).first()
+    if username != session.get('username') or not UserModel.query.filter_by(username=username).first() or not check_password_hash(user.password,password):
+        return jsonify({'code':400,'msg':'验证失败'})
+    return jsonify({'code':200,'msg':'验证成功'})
+
+@user_bp.post('/updatepwd')
+def updatepwd():
+    username=request.form.get('username')
+    password=request.form.get('password')
+    if not UserModel.query.filter_by(username=username).first():
+        return jsonify({'code':400,'msg':'用户不存在'})
+    user=UserModel.query.filter_by(username=username).first()
+    user.password=generate_password_hash(password)
+    db.session.commit()
+    return jsonify({'code':200,'msg':'密码修改成功'})
+
+@user_bp.route('/character')
+def character():
+    characters=CharacterModel.query.all()
+    addcharacterform=AddcharacterForm()
+    altercharacterform=AltercharacterForm()
+    return render_template('character.html',characters=characters,addcharacterform=addcharacterform,altercharacterform=altercharacterform)
+
+@user_bp.post('/addcharacter')
+def addcharacter():
+    addcharacterform=AddcharacterForm()
+    if addcharacterform.validate():
+        data = addcharacterform.data
+        if CharacterModel.query.filter_by(charactercode=data['required']).first() or CharacterModel.query.filter_by(charactername=data['realname']).first():
+            flash("添加失败：角色代码或角色名称已存在", "error") # 使用 flash 消息
+            return redirect(url_for('user.character'))
+        
+        new_character = CharacterModel(
+            charactercode=data['required'],
+            charactername=data['realname'],
+            description=data['description'],
+            effectivedate=datetime.now()
+        )
+        db.session.add(new_character)
+        db.session.commit()
+        flash("角色添加成功", "success")
+        return redirect(url_for('user.character'))
+    else:
+        error_msgs = []
+        for field, errors in addcharacterform.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        flash("角色添加失败："+ "; ".join(error_msgs), "error")
+        return redirect(url_for('user.character'))
+    
+@user_bp.post('/altercharacter/<string:role_code>')
+def altercharacter(role_code):
+    altercharacterform=AltercharacterForm()
+    if altercharacterform.validate():
+        data = altercharacterform.data
+        character = CharacterModel.query.filter_by(charactercode=role_code).first()
+        if character:
+            if data['role_name']!=character.charactername and CharacterModel.query.filter_by(charactername=data['role_name']).first():
+                return jsonify({'code':500,'msg':'角色名称已存在，修改失败'})
+            character.charactername = data['role_name']
+            character.description = data['role_desc']
+            db.session.commit()
+            return jsonify({'code':200,'msg':'角色修改成功'})
+        else:
+            return jsonify({'code':500,'msg':'角色已不存在，修改失败'})
+    else:
+        error_msgs = []
+        for field, errors in altercharacterform.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        return jsonify({"code": 400, "msg": "; ".join(error_msgs)})

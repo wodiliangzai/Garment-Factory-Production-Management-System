@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    <head>
+        <title>登录</title><meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="{{url_for('static',filename='css/bootstrap.min.css')}}" />
+		<link rel="stylesheet" href="{{url_for('static',filename='css/bootstrap-responsive.min.css')}}" />
+        <link rel="stylesheet" href="{{url_for('static',filename='css/matrix-login.css')}}" />
+        <link href="{{url_for('static',filename='font-awesome/css/font-awesome.css')}}" rel="stylesheet" />
+		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700,800' rel='stylesheet' type='text/css'>
+        <style>
+            #resetPasswordModal .control-group {
+                display: flex !important;
+                align-items: center !important;
+                margin-bottom: 20px !important; /* 保持行间距 */
+                position: relative; /* 为绝对定位做准备（如果需要） */
+            }
+
+            /* 强制输入框容器不换行 */
+            #resetPasswordModal .controls {
+                display: flex !important;
+                align-items: center !important;
+                flex: 1;
+            }
+
+            /* 修复验证错误提示的位置：显示在右侧 */
+            #resetPasswordModal span.help-inline {
+                display: inline-block !important;
+                margin-top: 0 !important;
+                margin-left: 10px !important; /* 与输入框的间距 */
+                color: #b94a48;
+                font-size: 12px;
+                white-space: nowrap; /* 防止文字换行 */
+                width: auto !important;
+            }
+
+            /* 确保输入框宽度固定，不会被错误提示挤压 */
+            #resetPasswordModal input[type="password"] {
+                width: 220px !important; /* 固定宽度 */
+                flex: 0 0 220px !important; /* 禁止 Flex 压缩 */
+            }
+            
+            /* 校验失败时的红色边框样式修正 */
+            #resetPasswordModal .control-group.error input {
+                border-color: #b94a48 !important;
+                box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075) !important;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="loginbox">          
+            <form id="loginform" class="form-vertical" action="{{url_for('user.login')}}" method="post">
+                {{ form.csrf_token }}  <!--此处用于防止跨站请求伪造（CSRF）攻击-->
+				<div class="control-group normal_text"> <img src="{{url_for('static',filename='img/clothes-hanger.png')}}" alt="image" class="main__bg"><h2>一帆制衣</h2></div>
+                <div class="control-group">
+                    <div class="controls">
+                        <div class="main_input_box">
+                            <span class="add-on bg_lg"><i class="icon-user"></i></span>{{ form.username }}
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <div class="main_input_box">
+                            <span class="add-on bg_ly"><i class="icon-lock"></i></span>{{ form.password }}
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <!-- 添加 class "captcha-box" -->
+                        <div class="main_input_box captcha-box">
+                            <span class="add-on bg_ly"><i class="icon-check"></i></span>
+                            <!-- <input type="text" id="captcha-input" placeholder="请输入验证码" /> -->
+                            {{ form.captcha(id='captcha-input') }}
+                            <img src="{{ url_for('user.captcha') }}" alt="验证码" id="captcha-img" title="点击更换验证码">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <span class="pull-left"><a href="#" class="flip-link btn btn-info" id="to-recover">忘记密码?</a></span>
+                    <span class="pull-right">{{ form.login(class='btn btn-success') }}</span>
+                </div>
+            </form>
+            <form id="recoverform" action="#" class="form-vertical">
+                {{ form2.csrf_token }}
+				<p class="normal_text">在下方输入您的电子邮箱地址，我们会向您发送验证码以帮助您找回权限。</p>
+				<div class="control-group">
+                    <div class="controls">
+                        <div class="main_input_box">
+                            <span class="add-on bg_lg"><i class="icon-user"></i></span>{{ form2.username(id='recover-username') }}<!-- <input type="text" id="recover-username" placeholder="请输入用户名" /> -->
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <div class="main_input_box">
+                            <span class="add-on bg_lo"><i class="icon-envelope"></i></span>{{ form2.email(id='recover-email') }}<!-- <input type="text" id="recover-email" placeholder="请输入邮箱" /> -->
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <div class="main_input_box email-code-box">
+                            <span class="add-on bg_lo"><i class="icon-envelope"></i></span>
+                            <!-- <input type="text" id="email-code-input" placeholder="请输入邮箱验证码" /> -->
+                            {{ form2.mail_captcha(id='email-code-input') }}
+                            <button type="button" class="btn-get-code" id="captcha-btn">获取验证码</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <div class="controls">
+                        <!-- 添加 class "captcha-box" -->
+                        <div class="main_input_box captcha-box">
+                            <span class="add-on bg_ly"><i class="icon-check"></i></span>
+                            <!-- <input type="text" id="captcha-input" placeholder="请输入验证码" /> -->
+                            {{ form2.img_captcha(id='captcha-input') }}
+                            <img src="{{ url_for('user.captcha') }}" alt="验证码" id="captchaimg" title="点击更换验证码">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <span class="pull-left"><a href="#" class="flip-link btn btn-success" id="to-login">&laquo; 返回登录</a></span>
+                    <span class="pull-right">{{ form2.submit(class='btn btn-info') }}</span>
+                </div>
+            </form>
+        </div>
+        <div id="resetPasswordModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true" style="width: 550px; margin-left: -275px;">
+            <form id="reset_password_form" style="margin: 0;">
+                <div class="modal-header" style="background: #f7f7f7; border-radius: 6px 6px 0 0;">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h3 style="font-size: 16px; font-weight: bold; color: #444;">初始化密码</h3>
+                </div>
+                
+                <div class="modal-body" style="padding: 30px 40px; overflow: visible;">
+                    <input type="hidden" id="reset_target_username" name="username" />
+                    
+                    <!-- 输入密码行 -->
+                    <div class="control-group" style="margin-bottom: 20px; display: flex; align-items: center;">
+                        <label style="width: 80px; text-align: right; margin-right: 15px; font-weight: bold; color: #333; margin-bottom: 0;">
+                            输入密码 <span style="color:red">*</span>
+                        </label>
+                        <div class="controls" style="flex: 1; margin-left: 0;">
+                            <input type="password" id="new_pwd" name="new_pwd" placeholder="请输入新密码" 
+                                style="width: 100%; height: 32px; box-sizing: border-box; margin-bottom: 0;" />
+                        </div>
+                    </div>
+
+                    <!-- 确认密码行 -->
+                    <div class="control-group" style="margin-bottom: 10px; display: flex; align-items: center;">
+                        <label style="width: 80px; text-align: right; margin-right: 15px; font-weight: bold; color: #333; margin-bottom: 0;">
+                            确认密码 <span style="color:red">*</span>
+                        </label>
+                        <div class="controls" style="flex: 1; margin-left: 0;">
+                            <input type="password" id="confirm_pwd" name="confirm_pwd" placeholder="请再次输入密码" 
+                                style="width: 100%; height: 32px; box-sizing: border-box; margin-bottom: 0;" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="background: #f7f7f7; border-radius: 0 0 6px 6px; padding: 15px;">
+                    <span class="reset-msg pull-left" style="margin-top: 5px; font-weight: bold;"></span>
+                    <button type="button" class="btn" data-dismiss="modal" style="margin-right: 10px;">取消</button>
+                    <button type="submit" class="btn btn-primary">确认</button>
+                </div>
+            </form>
+        </div>
+        
+        <script src="{{url_for('static',filename='js/jquery.min.js')}}"></script>  
+        <script src="{{url_for('static',filename='js/matrix.login.js')}}"></script>
+        <script src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script>
+        <!-- 引入 jQuery Validate 插件 (如果尚未引入) -->
+        <script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+        {% if error_msgs %} 
+        <script>
+            window.onload = function() {
+                alert("{{ error_msgs|join('\\n') }}");
+            }
+        </script>
+        {% endif %}
+        <script>
+            // 当点击图片时更换验证码
+            $('#captcha-img').click(function() {
+                $(this).attr('src', '/user/captcha?' + new Date().getTime());
+            });
+            $('#captchaimg').click(function() {
+                $(this).attr('src', '/user/captcha?' + new Date().getTime());
+            });
+        </script>
+        <script>
+            $(document).ready(function(){
+                function refreshCaptcha(selector) {
+                    $(selector).attr('src', "{{ url_for('user.captcha') }}?" + new Date().getTime());
+                }
+
+                // 1. 页面刚加载时，强制刷新两处的验证码
+                refreshCaptcha('#captcha-img');
+                refreshCaptcha('#captchaimg');
+
+                // 2. 点击“忘记密码”切换界面时，刷新忘记密码表单的验证码
+                $('#to-recover').on('click', function(){
+                    refreshCaptcha('#captchaimg');
+                });
+
+                // 3. 点击“返回登录”切换界面时，刷新登录表单的验证码
+                $('#to-login').on('click', function(){
+                    refreshCaptcha('#captcha-img');
+                });
+                // --- 1. 获取邮箱验证码逻辑 ---
+                $('#captcha-btn').on('click', function(){
+                    var $btn = $(this);
+                    var username = $('#recover-username').val();
+                    var email = $('#recover-email').val();
+                    
+                    // 简单校验
+                    if(!username || !email){ alert('请先输入用户名和邮箱'); return; }
+
+                    // 发送 AJAX 请求获取验证码
+                    $.ajax({
+                        url: "{{ url_for('user.get_email_captcha') }}",
+                        type: "POST",
+                        data: {
+                            username: username,
+                            email: email,
+                            csrf_token: "{{ form.csrf_token.current_token }}"
+                        },
+                        success: function(res) {
+                            if (res.code === 200) {
+                                alert("验证码已发送，请查收邮件");
+                                startTimer($btn); // 启动倒计时
+                            } else {
+                                alert(res.message || "发送失败");
+                            }
+                        },
+                        error: function() {
+                            alert("服务器错误，请稍后重试");
+                        }
+                    });
+                });
+
+                // 倒计时函数封装
+                function startTimer($btn) {
+                    var count = 60;
+                    $btn.prop('disabled', true);
+                    $btn.css({'background-color': '#bdc3c7', 'cursor': 'not-allowed', 'color': '#fff'});
+                    $btn.text(count + 's后重试');
+
+                    var timer = setInterval(function(){
+                        count--;
+                        if (count > 0) {
+                            $btn.text(count + 's后重试');
+                        } else {
+                            clearInterval(timer);
+                            $btn.prop('disabled', false);
+                            $btn.css({'background-color': '#28b779', 'cursor': 'pointer'});
+                            $btn.text('获取验证码');
+                        }
+                    }, 1000);
+                }
+
+                // --- 2. “下一步”按钮逻辑 (验证身份) ---
+                // 使用 jQuery Validate 的 submitHandler 来处理提交
+                $('#recoverform').validate({
+                    rules: {
+                        username: { required: true },
+                        email: { required: true, email: true },
+                        mail_captcha: { required: true } // 确保你的 form2 中字段名为 mail_captcha
+                    },
+                    messages: {
+                        username: "请输入用户名",
+                        email: "请输入有效的邮箱",
+                        mail_captcha: "请输入验证码"
+                    },
+                    errorClass: "help-inline",
+                    errorElement: "span",
+                    highlight:function(element, errorClass, validClass) {
+                        $(element).parents('.control-group').addClass('error');
+                    },
+                    unhighlight: function(element, errorClass, validClass) {
+                        $(element).parents('.control-group').removeClass('error');
+                    },
+                    submitHandler: function(form) {
+                        // 发送 AJAX 请求验证身份
+                        $.ajax({
+                            url: "{{ url_for('user.forgotpwd') }}",
+                            type: "POST",
+                            data: $(form).serialize(), // 序列化表单数据 (包含 csrf_token)
+                            success: function(res) {
+                                if (res.code === 200) {
+                                    // 验证成功，弹出重置密码框
+                                    $('#resetPasswordModal').modal('show');
+                                } else {
+                                    alert(res.message || "验证失败");
+                                }
+                            },
+                            error: function() {
+                                alert("服务器错误");
+                            }
+                        });
+                        return false; // 阻止表单默认提交
+                    }
+                });
+
+                // --- 3. 重置密码表单逻辑 ---
+                $('#reset_password_form').validate({
+                    rules: {
+                        new_pwd: { required: true, minlength: 6, maxlength: 20 },
+                        confirm_pwd: { required: true, minlength: 6, maxlength: 20, equalTo: "#new_pwd" }
+                    },
+                    messages: {
+                        new_pwd: { required: "不能为空", minlength: "不少于6个字符", maxlength: "不多于20个字符" },
+                        confirm_pwd: { required: "不能为空", minlength: "不少于6个字符", maxlength: "不多于20个字符", equalTo: "两次密码不一致" }
+                    },
+                    errorClass: "help-inline",
+                    errorElement: "span",
+                    highlight:function(element, errorClass, validClass) {
+                        $(element).parents('.control-group').addClass('error');
+                    },
+                    unhighlight: function(element, errorClass, validClass) {
+                        $(element).parents('.control-group').removeClass('error');
+                    },
+                    submitHandler: function(form) {
+                        var $modal = $('#resetPasswordModal');
+                        var $msg = $modal.find('.reset-msg');
+                        var $btns = $modal.find('.btn');
+                        var password = $('#new_pwd').val();
+
+                        // 发送 AJAX 请求重置密码
+                        $.ajax({
+                            url: "{{ url_for('user.resetpwd') }}",
+                            type: "POST",
+                            data: {
+                                password: password,
+                                csrf_token: "{{ form.csrf_token.current_token }}" // 手动携带 CSRF
+                            },
+                            beforeSend: function() {
+                                $btns.hide();
+                                $msg.css('color', 'blue').text('正在提交...');
+                            },
+                            success: function(res) {
+                                if (res.code === 200) {
+                                    $msg.css('color', 'green').text(res.msg);
+                                    setTimeout(function(){
+                                        $modal.modal('hide');
+                                        form.reset();
+                                        $msg.text('');
+                                        $btns.show();
+                                        // 成功后返回登录界面
+                                        $('#to-login').click();
+                                    }, 1000);
+                                } else {
+                                    $msg.css('color', 'red').text(res.msg);
+                                    $btns.show();
+                                }
+                            },
+                            error: function() {
+                                $msg.css('color', 'red').text('服务器通信错误');
+                                $btns.show();
+                            }
+                        });
+                        return false; // 阻止表单默认提交
+                    }
+                });
+            });
+        </script>
+    </body>
+
+</html>

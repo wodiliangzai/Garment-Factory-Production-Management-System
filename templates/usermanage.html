@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">用户管理</a> </div>
+    <h1>用户管理</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>用户列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table id="userTable" class="table table-bordered data-table">
+                    <thead>
+                        <tr>
+                        <th>用户名</th>
+                        <th>真实姓名</th>
+                        <th>邮箱</th>
+                        <th>生效时间</th>
+                        <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{user.username}}</td>
+                            <td>{{user.realname}}</td>
+                            <td>{{user.email}}</td>
+                            <td class="center">{{user.effectivedate}}</td>
+                            <td>
+                                <span> <a href="#" class="btn btn-primary btn-mini">角色</a> </span>
+                                <span> <button type="button" class="btn btn-mini btn-primary btn-edit" data-username="{{user.username}}" data-realname="{{user.realname}}" data-email="{{user.email}}">编辑</button> </span>
+                                <span> <a href="#" class="btn btn-danger btn-mini">密码</a> </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                    <div id="editUserModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+                        <form id="edit_user_form" class="form-horizontal" action="{{url_for('user.updateuser',hide_username='__USERNAME__')}}" method="post">
+                            {{updateuserForm.csrf_token}} <!--此处用于防止跨站请求伪造（CSRF）攻击-->
+                            {{ updateuserForm.hidden_tag() }}
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">×</button>
+                                <h3>编辑用户</h3>
+                                <!-- <input type="hidden" id="hide_username" name="hide_username" /> -->
+                                {{ updateuserForm.hide_username(id='hide_username') }}
+                            </div>
+                            <div class="modal-body">
+                                <div class="control-group">
+                                    <label class="control-label" for="edit_username">{{updateuserForm.username.label}}</label>
+                                    <div class="controls">
+                                        <!-- <input type="text" id="edit_username" name="username" class="span8" /> -->
+                                        {{ updateuserForm.username(id='edit_username',class='span8') }}
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="edit_realname">{{updateuserForm.realname.label}}</label>
+                                    <div class="controls">
+                                        <!-- <input type="text" id="edit_realname" name="realname" class="span8" /> -->
+                                        {{ updateuserForm.realname(id='edit_realname',class='span8') }}
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label" for="edit_email">{{updateuserForm.email.label}}</label>
+                                    <div class="controls">
+                                        <!-- <input type="text" id="edit_email" name="email" class="span8" /> -->
+                                        {{ updateuserForm.email(id='edit_email',class='span8') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" id="edit_cancel" class="btn">取消</button>
+                                <!-- <button type="submit" class="btn btn-success">修改</button> -->
+                                {{ updateuserForm.submit(class='btn btn-success') }}
+                            </div>
+                        </form>
+                    </div>
+                    <div id="verifyIdentityModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+                        <form id="verify_identity_form" class="form-horizontal">
+                            <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">×</button>
+                            <h3>验证身份</h3>
+                            </div>
+                            <div class="modal-body">
+                            <div class="control-group">
+                                <label class="control-label">用户名：<span style="color:red">*</span></label>
+                                <div class="controls">
+                                <!-- readonly 防止修改用户名，自动带入 -->
+                                <input type="text" id="verify_username" name="verify_username" class="span8" readonly />
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">密码：<span style="color:red">*</span></label>
+                                <div class="controls">
+                                <input type="password" id="verify_pwd" name="verify_pwd" class="span8" placeholder="请输入当前登录用户密码" />
+                                </div>
+                            </div>
+                            </div>
+                            <div class="modal-footer">
+                                <span class="verify-error-msg pull-left" style="color: red; margin-top: 5px; font-weight: bold;"></span>
+                                <button type="button" class="btn" data-dismiss="modal">取消</button>
+                                <button type="submit" class="btn btn-primary">确定</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div id="resetPasswordModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+                        <form id="reset_password_form" class="form-horizontal">
+                            <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">×</button>
+                            <h3>初始化密码</h3>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="reset_target_username" name="username" />
+                                <div class="control-group">
+                                    <label class="control-label">输入密码：<span style="color:red">*</span></label>
+                                    <div class="controls">
+                                    <input type="password" id="new_pwd" name="new_pwd" class="span8" placeholder="请输入新密码" />
+                                    </div>
+                                </div>
+                                <div class="control-group">
+                                    <label class="control-label">确认密码：<span style="color:red">*</span></label>
+                                    <div class="controls">
+                                    <input type="password" id="confirm_pwd" name="confirm_pwd" class="span8" placeholder="请再次输入密码" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <span class="reset-msg pull-left" style="margin-top: 5px; font-weight: bold;"></span>
+                                <button type="button" class="btn" data-dismiss="modal">取消</button>
+                                <button type="submit" class="btn btn-primary">确认</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-info-sign"></i> </span>
+                    <h5>添加用户</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <form class="form-horizontal" action="{{url_for('user.adduser')}}" method="post" name="basic_validate" id="basic_validate" novalidate="novalidate">
+                        {{adduserForm.csrf_token}}
+                        <div class="control-group">
+                        <label class="control-label">{{adduserForm.required.label}}</label>
+                        <div class="controls">
+                            <!-- <input type="text" name="required" id="required"> -->
+                            {{adduserForm.required(id='required')}}
+                        </div>
+                        </div>
+                        <div class="control-group">
+                        <label class="control-label">{{adduserForm.realname.label}}</label>
+                        <div class="controls">
+                            <!-- <input type="text" name="realname" id="realname"> -->
+                            {{adduserForm.realname(id='realname')}}
+                        </div>
+                        </div>
+                        <div class="control-group">
+                        <label class="control-label">{{adduserForm.email.label}}</label>
+                        <div class="controls">
+                            <!-- <input type="text" name="email" id="email"> -->
+                            {{adduserForm.email(id='email')}}
+                        </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{adduserForm.pwd.label}}</label>
+                            <div class="controls">
+                                <!-- <input type="password" name="pwd" id="pwd" /> -->
+                                {{adduserForm.pwd(id='pwd')}}
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{adduserForm.pwd2.label}}</label>
+                            <div class="controls">
+                                <!-- <input type="password" name="pwd2" id="pwd2" /> -->
+                                {{adduserForm.pwd2(id='pwd2')}}
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <!-- <input type="submit" value="添加用户" class="btn btn-success"> -->
+                            {{ adduserForm.add(class='btn btn-success') }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(function () {
+  var $modal = $('#editUserModal');
+  // 基础 action 带占位符，由 Jinja 渲染后再替换
+  var baseAction = "{{ url_for('user.updateuser', hide_username='__USERNAME__') }}";
+
+  // 点击编辑按钮 -> 填充并显示弹窗，同时设置表单 action
+  $('.data-table').on('click', '.btn-edit', function () {
+    var $btn = $(this);
+    var username = $btn.data('username');
+
+    $('#hide_username').val(username); // 隐藏域保存原用户名
+    $('#edit_username').val(username);
+    $('#edit_realname').val($btn.data('realname'));
+    $('#edit_email').val($btn.data('email'));
+
+    // 用隐藏域的值替换 action 中的占位符
+    var finalAction = baseAction.replace('__USERNAME__', encodeURIComponent($('#hide_username').val()));
+    $('#edit_user_form').attr('action', finalAction);
+
+    // 重置验证状态
+    $('#edit_user_form').validate().resetForm();
+    $('#edit_user_form .control-group').removeClass('error success');
+
+    $('#edit_cancel').show();
+    $('#edit_user_form').find('button[type="submit"]').show();
+    $modal.modal('show');
+  });
+
+  $('#edit_cancel').on('click', function () {
+    $modal.modal('hide');
+  });
+
+  // 在提交前再确保 action 使用当前隐藏域值（以防被修改）
+  $('#edit_user_form').on('submit', function () {
+    var finalAction = baseAction.replace('__USERNAME__', encodeURIComponent($('#hide_username').val()));
+    $(this).attr('action', finalAction);
+    return true; // 继续提交
+  });
+
+  // 弹窗表单校验（保持原有配置）
+  $('#edit_user_form').validate({
+    rules: {
+      username: { required: true },
+      realname: { required: true },
+      email: { required: true, email: true }
+    },
+    errorClass: 'help-inline',
+    errorElement: 'span',
+    highlight: function (element) {
+      $(element).parents('.control-group').removeClass('success').addClass('error');
+    },
+    unhighlight: function (element) {
+      $(element).parents('.control-group').removeClass('error').addClass('success');
+    },
+    submitHandler: function (form) {
+      // 1. 先手动关闭模态框，让用户看到关闭动画
+      $('#editUserModal').modal('hide');
+
+      // 2. 设置延迟（例如 200毫秒），等待动画结束再提交表单
+      setTimeout(function() {
+          // 使用原生 DOM 的 submit 方法提交，触发表单的 action
+          //form.submit();
+          // 使用原型链上的 submit 方法，避开 name="submit" 的冲突 
+          HTMLFormElement.prototype.submit.call(form);
+      }, 200); 
+    }
+  });
+
+  var $verifyModal = $('#verifyIdentityModal');
+  var $resetModal = $('#resetPasswordModal');
+
+  $('.data-table').on('click', '.btn-danger', function (e) {
+    e.preventDefault(); 
+    
+    // 获取目标用户的用户名（要修改谁的密码）
+    var $row = $(this).closest('tr');
+    var targetUsername = $row.find('.btn-edit').data('username'); 
+    
+    // 将目标用户名存入第二个弹窗的隐藏域
+    $('#reset_target_username').val(targetUsername);
+
+    // 填充第一个弹窗：验证的是当前登录操作员的身份
+    // 使用 Jinja2 获取 session 中的当前用户名
+    $('#verify_username').val("{{ session.get('username') }}");
+    $('#verify_pwd').val('');
+    
+    // 清除之前的错误信息
+    $('.verify-error-msg').text('');
+
+    // 重置验证样式
+    $('#verify_identity_form').validate().resetForm();
+    $('#verify_identity_form .control-group').removeClass('error success');
+
+    $verifyModal.modal('show');
+  });
+
+  // 2. 验证身份表单校验与 AJAX 提交
+  $('#verify_identity_form').validate({
+    rules: {
+      verify_pwd: { required: true,
+        minlength:6,
+		maxlength:20 }
+    },
+    errorClass: 'help-inline',
+    errorElement: 'span',
+    highlight: function (element) {
+      $(element).parents('.control-group').removeClass('success').addClass('error');
+    },
+    unhighlight: function (element) {
+      $(element).parents('.control-group').removeClass('error').addClass('success');
+    },
+    submitHandler: function (form) {
+      var username = $('#verify_username').val();
+      var password = $('#verify_pwd').val();
+
+      $.ajax({
+        url: "{{ url_for('user.userverification') }}",
+        type: "POST",
+        data: {
+            username: username,
+            password: password
+        },
+        beforeSend: function(xhr) {
+            // 添加CSRF令牌 (注意：如果模板中没有定义 csrf_token 变量，这里可能需要改为从表单隐藏域获取)
+            // 假设你使用的是 Flask-WTF 并且在全局上下文中有 csrf_token
+            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}"); 
+        },
+        success: function(res) {
+            if (res.code === 200) {
+                // 验证成功：关闭当前弹窗，打开下一个
+                $verifyModal.modal('hide');
+                
+                setTimeout(function(){
+                    // 重置重置密码表单
+                    $('#new_pwd').val('');
+                    $('#confirm_pwd').val('');
+                    $('.reset-msg').text(''); // 清空消息
+                    $('#reset_password_form').validate().resetForm();
+                    $('#reset_password_form .control-group').removeClass('error success');
+                    
+                    // 打开初始化密码弹窗
+                    $resetModal.modal('show');
+                }, 300);
+            } else {
+                // 验证失败：左下角红色字体提示
+                $('.verify-error-msg').text(res.msg || '验证失败');
+            }
+        },
+        error: function() {
+            $('.verify-error-msg').text('服务器通信错误');
+        }
+      });
+      return false; // 阻止表单默认提交
+    }
+  });
+
+  // 3. 初始化密码表单校验与 AJAX 提交
+  $('#reset_password_form').validate({
+    rules: {
+      new_pwd: { required: true, minlength: 6, maxlength: 20 },
+      confirm_pwd: { required: true, minlength: 6, maxlength: 20, equalTo: "#new_pwd" }
+    },
+    errorClass: 'help-inline',
+    errorElement: 'span',
+    highlight: function (element) {
+      $(element).parents('.control-group').removeClass('success').addClass('error');
+    },
+    unhighlight: function (element) {
+      $(element).parents('.control-group').removeClass('error').addClass('success');
+    },
+    submitHandler: function (form) {
+      var targetUsername = $('#reset_target_username').val();
+      var newPassword = $('#new_pwd').val();
+      var $msgSpan = $('.reset-msg');
+
+      $.ajax({
+        url: "{{ url_for('user.updatepwd') }}",
+        type: "POST",
+        data: {
+            username: targetUsername,
+            password: newPassword
+        },
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+        },
+        success: function(res) {
+            if (res.code === 200) {
+                // 修改成功：绿色字体提示
+                $msgSpan.css('color', 'green').text(res.msg || '密码修改成功');
+                
+                // 半秒后关闭窗口
+                setTimeout(function(){
+                    $resetModal.modal('hide');
+                }, 500);
+            } else {
+                // 修改失败：红色字体提示
+                $msgSpan.css('color', 'red').text(res.msg || '修改失败');
+            }
+        },
+        error: function() {
+            $msgSpan.css('color', 'red').text('服务器通信错误');
+        }
+      });
+
+      return false; // 阻止表单默认提交
+    }
+  });
+});
+</script>
+{% endblock %}
