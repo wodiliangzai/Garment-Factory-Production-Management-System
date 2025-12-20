@@ -19,7 +19,7 @@ class LoginForm(FlaskForm):
         
 class UpdateuserForm(FlaskForm):
     hide_username=HiddenField('原用户名')
-    username=StringField('用户名',render_kw={'placeholder':'请输入用户名'})
+    username=StringField('用户名',render_kw={'placeholder':'请输入用户名','readonly': True})
     realname=StringField('真实姓名',render_kw={'placeholder':'请输入真实姓名'})
     email=EmailField('邮箱',render_kw={'placeholder':'请输入邮箱'})
     submit=SubmitField('修改')
@@ -85,3 +85,10 @@ class AddmaterialForm(FlaskForm):
     description=StringField('规格型号',render_kw={'placeholder':'请输入规格型号'},validators=[DataRequired(message='请输入规格型号!'),Length(max=50,message="规格型号超长!")])
     materialtype=SelectField('物料类型',choices=[('','请选择物料类型'),('原材料','原材料'),('半成品','半成品'),('成品','成品')],render_kw={'placeholder':'请选择物料类型'},validators=[InputRequired(message='请选择物料类型')])
     add=SubmitField('添加物料')
+
+class AltermaterialForm(FlaskForm):
+    role_code=StringField('物料编码',render_kw={'placeholder':'请输入物料编码','readonly': True})
+    role_name=StringField('物料描述',render_kw={'placeholder':'请输入物料描述'},validators=[DataRequired(message='请输入物料描述!'),Length(max=50,message="物料描述超长!")])
+    role_desc=StringField('规格型号',render_kw={'placeholder':'请输入规格型号'},validators=[DataRequired(message='请输入规格型号!'),Length(max=50,message="规格型号超长!")])
+    role_type=SelectField('物料类型',choices=[('原材料','原材料'),('半成品','半成品'),('成品','成品')],render_kw={'placeholder':'请选择物料类型'},validators=[InputRequired(message='请选择物料类型')])
+    alter=SubmitField('保存')

@@ -233,39 +233,46 @@
         <h3 id="editRoleLabel">编辑物料信息</h3>
     </div>
     <form id="editRoleForm" class="form-horizontal">
+        {{altermaterialform.csrf_token}}
         <div class="modal-body">
         <div class="control-group">
-            <label class="control-label">物料编码</label>
+            <label class="control-label">{{altermaterialform.role_code.label}}</label>
             <div class="controls">
-                <input type="text" name="role_code" class="input-xlarge">
+                <!-- <input type="text" name="role_code" class="input-xlarge"> -->
+                {{altermaterialform.role_code(class='input-xlarge')}}
             </div>
         </div>
         <div class="control-group">
-            <label class="control-label">物料描述</label>
+            <label class="control-label">{{altermaterialform.role_name.label}}</label>
             <div class="controls">
-                <input type="text" name="role_name" class="input-xlarge">
+                <!-- <input type="text" name="role_name" class="input-xlarge"> -->
+                {{altermaterialform.role_name(class='input-xlarge')}}
             </div>
         </div>
         <div class="control-group">
-            <label class="control-label">规格型号</label>
+            <label class="control-label">{{altermaterialform.role_desc.label}}</label>
             <div class="controls">
-                <input type="text" name="role_desc" class="input-xxlarge">
+                <!-- <input type="text" name="role_desc" class="input-xxlarge"> -->
+                {{altermaterialform.role_desc(class='input-xxlarge')}}
             </div>
         </div>
         <div class="control-group">
-            <label class="control-label">物料类型</label>
+            <label class="control-label">{{altermaterialform.role_type.label}}</label>
             <div class="controls">
-                <select name="role_type" style="width: 285px;">
+                <!-- <select name="role_type" style="width: 285px;">
                     <option value="原材料">原材料</option>
                     <option value="半成品">半成品</option>
                     <option value="成品">成品</option>
-                </select>
+                </select> -->
+                {{altermaterialform.role_type(style="width: 285px;")}}
             </div>
         </div>
         </div>
         <div class="modal-footer">
+            <span class="edit-msg pull-left" style="margin-top: 5px; font-weight: bold;"></span>
             <button type="button" class="btn" data-dismiss="modal">取消</button>
-            <button type="submit" class="btn btn-primary">保存</button>
+            <!-- <button type="submit" class="btn btn-primary">保存</button> -->
+            {{altermaterialform.alter(class="btn btn-primary")}}
         </div>
     </form>
 </div>
@@ -317,6 +324,9 @@ $(document).ready(function() {
 $(function(){
   var $currentRow = null;
   var $permRow = null;
+  $('#editRoleModal').on('hidden', function(){
+      $('.edit-msg').text('');
+  });
 
   $(document).on('click', 'table a', function(e){
     var txt = $(this).text().replace(/\s+/g,'').trim();
@@ -345,13 +355,36 @@ $(function(){
     var code = $(this).find('input[name="role_code"]').val();
     var name = $(this).find('input[name="role_name"]').val();
     var desc = $(this).find('input[name="role_desc"]').val();
+    var type = $(this).find('select[name="role_type"]').val();
+    var baseUrl = "{{ url_for('product.altermaterial', role_code='__CODE__') }}";
+    var finalUrl = baseUrl.replace('__CODE__', encodeURIComponent(code));
+    var $msgSpan = $('.edit-msg');
 
-    $currentRow.find('td').eq(0).text(code);
-    $currentRow.find('td').eq(1).text(name);
-    $currentRow.find('td').eq(2).text(desc);
-
-    $('#editRoleModal').modal('hide');
-    $currentRow = null;
+    $.ajax({
+      url: finalUrl,
+      type: 'POST',
+      data: $(this).serialize(), // 序列化表单数据
+      success: function(res) {
+          if(res.code === 200) {
+              // 后端保存成功后，执行本地更新
+              $currentRow.find('td').eq(0).text(code);
+              $currentRow.find('td').eq(1).text(name);
+              $currentRow.find('td').eq(2).text(desc);
+              $currentRow.find('td').eq(3).text(type); 
+              $msgSpan.css('color', 'green').text('修改成功！');
+              setTimeout(function(){
+                  $('#editRoleModal').modal('hide');
+                  $currentRow = null;
+              }, 500);
+          } else {
+              // 显示红色失败提示
+              $msgSpan.css('color', 'red').text(res.msg || '修改失败');
+          }
+      },
+      error: function() {
+        $msgSpan.css('color', 'red').text('服务器通信错误，请稍后重试');
+      }
+    });
   });
 });
 </script>
