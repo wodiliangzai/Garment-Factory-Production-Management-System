@@ -34,4 +34,47 @@ class MaterialModel(db.Model):
     creater=db.Column(NVARCHAR(50), nullable=False)
     altertime=db.Column(db.DateTime, nullable=False)
     alteruser=db.Column(NVARCHAR(50), nullable=False)
+
+class PRHeaderModel(db.Model):
+    __tablename__='GPRHeader'
+    prcode=db.Column(NVARCHAR(50),primary_key=True)
+    prstatus=db.Column(NVARCHAR(50),nullable=False)
+    reason=db.Column(NVARCHAR(50),nullable=False)
+    prdate=db.Column(db.DateTime,nullable=False)
+    applicant=db.Column(NVARCHAR(50),db.ForeignKey('GUser.username'),nullable=False)
+    guser=db.relationship(UserModel,backref='prheaders')
+    prsupplier=db.Column(NVARCHAR(50),db.ForeignKey('GSupplier.suppliercode'),nullable=False)
+    gsupplier=db.relationship(SupplierModel,backref='prheaders')
+
+class PRLineModel(db.Model):
+    __tablename__='GPRLine'
+    prcode=db.Column(NVARCHAR(50),db.ForeignKey('GPRHeader.prcode',ondelete='CASCADE'),primary_key=True)
+    gprheader=db.relationship(PRHeaderModel,backref=db.backref('prlines', cascade='all, delete-orphan'))
+    prmaterial=db.Column(NVARCHAR(50),db.ForeignKey('GMaterial.materialcode'),primary_key=True)
+    gmaterial=db.relationship(MaterialModel,backref='prlines')
+    quantity=db.Column(db.Integer,nullable=False)
+
+class POHeaderModel(db.Model):
+    __tablename__='GPOHeader'
+    pocode=db.Column(NVARCHAR(50),primary_key=True)
+    postatus=db.Column(NVARCHAR(50),nullable=False)
+    purchaser=db.Column(NVARCHAR(50),db.ForeignKey('GUser.username'),nullable=False)
+    guser=db.relationship(UserModel,backref='poheaders')
+    posupplier=db.Column(NVARCHAR(50),db.ForeignKey('GSupplier.suppliercode'),nullable=False)
+    gsupplier=db.relationship(SupplierModel,backref='poheaders')
+    createdate=db.Column(db.DateTime,nullable=False)
+    orderdate=db.Column(db.DateTime,nullable=True)
+    applycode=db.Column(NVARCHAR(50),db.ForeignKey('GPRHeader.prcode'),nullable=False)
+    gprheader=db.relationship(PRHeaderModel,backref='poheaders')
+
+class POLineModel(db.Model):
+    __tablename__='GPOLine'
+    pocode=db.Column(NVARCHAR(50),db.ForeignKey('GPOHeader.pocode',ondelete='CASCADE'),primary_key=True)
+    gpoheader=db.relationship(POHeaderModel,backref=db.backref('polines', cascade='all, delete-orphan'))
+    pomaterial=db.Column(NVARCHAR(50),db.ForeignKey('GMaterial.materialcode'),primary_key=True)
+    gmaterial=db.relationship(MaterialModel,backref='polines')
+    quantity=db.Column(db.Integer,nullable=False)
+
+
     
+

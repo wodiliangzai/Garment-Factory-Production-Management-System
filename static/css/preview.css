@@ -1,0 +1,148 @@
+.table-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto; /* 允许横向滚动 */
+    margin-bottom: 10px;
+    border-right: 1px solid #ddd; /* 弥补滚动时右侧边框视觉缺失 */
+}
+
+/* 2. 强制表格内容不换行，确保撑开宽度 */
+#materialTable {
+    width: auto; /* 允许表格超出容器宽度 */
+    min-width: 100%;
+    max-width: none;
+}
+#materialTable th, 
+#materialTable td {
+    white-space: nowrap; /* 禁止文字换行 */
+    vertical-align: middle;
+}
+
+/* 3. 固定最后一列（操作列） */
+#materialTable th:last-child,
+#materialTable td:last-child {
+    position: sticky;
+    right: 0; /* 固定在右侧 */
+    z-index: 1;
+    border-left: 1px solid #ddd; /* 左侧加个边框区分 */
+    box-shadow: -2px 0 5px rgba(0,0,0,0.05); /* 添加阴影增加层次感 */
+}
+
+/* 4. 处理固定列的背景色（防止透明导致文字重叠） */
+/* 表头背景 */
+#materialTable thead th:last-child {
+    background-color: #efefef; 
+    z-index: 2; /* 表头层级要比内容高 */
+}
+/* 奇数行背景 */
+#materialTable tbody tr:nth-child(odd) td:last-child {
+    background-color: #f9f9f9;
+}
+/* 偶数行背景 */
+#materialTable tbody tr:nth-child(even) td:last-child {
+    background-color: #ffffff;
+}
+/* 鼠标悬停时的背景色处理 */
+#materialTable tbody tr:hover td:last-child {
+    background-color: #f6f6f6;
+}
+/* 1. 定义一个 Flex 容器，用于顶部和底部工具栏 */
+/* 这会让容器内的元素自动左右分布，且垂直居中 */
+.dt-toolbar-flex {
+    display: flex;
+    justify-content: space-between; /* 关键：让两个子元素分别靠左和靠右 */
+    align-items: center;            /* 关键：垂直居中对齐 */
+    padding: 12px 15px;             /* 统一设置：上下12px，左右15px间距 */
+    box-sizing: border-box;         /* 确保 padding 不会撑破宽度 */
+    width: 100%;
+}
+
+/* 2. 顶部工具栏特定样式 (白色背景) */
+.dt-top-toolbar {
+    background-color: #fff;
+    border-bottom: 1px solid #eeeeee;
+}
+
+/* 3. 底部工具栏特定样式 (浅灰背景) */
+.dt-bottom-toolbar {
+    background-color: #f9f9f9;
+    border-top: 1px solid #ddd;
+}
+
+/* 4. 重置 DataTables 内部元素的默认浮动和边距，让 Flexbox 接管布局 */
+/* 这一步很重要，防止原有的 float:left/right 干扰我们的布局 */
+.dataTables_length, 
+.dataTables_filter, 
+.dataTables_info, 
+.dataTables_paginate {
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+}
+.dataTables_filter {
+    /* 核心修改：强制给右侧增加 30px 的外边距 */
+    /* 这样搜索框就会往左移，不再紧贴右边缘，同时不影响左侧元素 */
+    margin-right: 20px !important; 
+    margin-top: 9px !important;
+}
+/* 5. 微调内部元素细节 */
+.dataTables_length label,
+.dataTables_filter label {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    color: #666;
+    font-weight: normal;
+}
+
+/* 搜索框输入框左侧加点间距 */
+.dataTables_filter input {
+    margin-left: 10px;
+    margin-bottom: 0;
+    /* height: 30px; 
+    line-height: 30px; */
+}
+
+/* 翻页按钮容器微调 */
+.dataTables_paginate {
+    display: flex;
+    justify-content: flex-end;
+}
+#materialTable th:first-child,
+#materialTable td:first-child {
+    width: 30px;
+    text-align: center;
+    min-width: 30px;
+    max-width: 30px;
+}
+.checker {
+    margin-right: 0 !important;
+    vertical-align: middle;
+}
+#materialTable td .checker,
+#materialTable th .checker {
+    float: none !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+}
+#materialTable td .checker span,
+#materialTable th .checker span {
+    float: none !important;
+    display: inline-block !important;
+}
+
+/* === 修复：DataTables “展示条数” select2 过宽 === */
+.dataTables_length .select2-container {
+    width: 80px !important;
+}
+.dataTables_length label {
+    justify-content: flex-start;
+    gap: 6px;
+}
+@media (min-width: 768px) {
+    #editRoleModal {
+        width: 800px;       /* 设置宽度 */
+        margin-left: -400px; /* 设置为宽度的一半（负值）以保持居中 */
+    }
+}

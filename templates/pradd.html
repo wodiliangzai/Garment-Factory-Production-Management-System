@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}采购申请管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage') }}" class="current">采购申请</a> <a href="{{ url_for('procurement.pradd') }}" class="current">新增采购申请</a> </div>
+    <h1>新增采购申请</h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+      <div class="span12">
+        <div class="widget-box">
+          <div class="widget-title"> <span class="icon"> <i class="icon-briefcase"></i> </span>
+            <h5>详细单据</h5>
+          </div>
+          <div class="widget-content">
+            <div class="row-fluid">
+              <div class="span6">
+                <table class="">
+                  <tbody>
+                    <tr>
+                      <td><h4>采购申请</h4></td>
+                    </tr>
+                    <tr>
+                      <td><h5>申请人姓名：{{ realname }}</h5></td>
+                    </tr>
+                    <tr>
+                      <td>邮箱：{{ email }}</td>
+                    </tr>
+                    <tr>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td> 
+                          <a id="btn-edit" class="btn btn-primary" href="javascript:void(0);">编辑单据</a> 
+                          <a id="btn-save" class="btn btn-success" href="javascript:void(0);" style="display:none;">保存单据</a>
+                          <!-- 给新增按钮添加 ID: btn-add-item -->
+                          <a id="btn-add-item" class="btn btn-primary" style="margin-left: 10px;" href="javascript:void(0);">新增单项</a> 
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="span6">
+                <table class="table table-bordered table-invoice">
+                  <tbody>
+                    <tr>
+                    <tr>
+                      <td class="width30">申请人:</td>
+                      <td class="width70"><strong>{{ username }}</strong></td>
+                    </tr>
+                    <tr>
+                      <td>供应商编码:</td>
+                      <!-- 添加 ID -->
+                      <td><strong id="val-supplier-code"></strong></td>
+                    </tr>
+                    <tr>
+                      <td>供应商名称:</td>
+                      <!-- 添加 ID: val-supplier-name -->
+                      <td><strong id="val-supplier-name"></strong></td>
+                    </tr>
+                    <tr> <!-- 注意：原代码这里缺少 tr 开始标签，建议补上 -->
+                        <td class="width30">申请理由:</td>
+                        <!-- 添加 ID -->
+                        <td class="width70"><strong id="val-reason"></strong> <br></td>
+                    </tr>
+                  </tbody>              
+                </table>
+              </div>
+            </div>
+            <div class="row-fluid">
+              <div class="span12">
+                <table class="table table-bordered table-invoice-full">
+                  <thead>
+                    <tr>
+                      <th class="head0" style="width: 5%;">行号</th>
+                      <th class="head1" style="width: 25%;">物料编码</th>
+                      <th class="head0 right" style="width: 25%;">物料描述</th>
+                      <th class="head1 right" style="width: 25%;">规格型号</th>
+                      <th class="head0 right" style="width: 10%;">申请数量</th>
+                      <th class="head1 right" style="width: 10%;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="item-table-body">
+                    <!-- 初始数据行，也可以留空由 JS 生成，这里保留一个示例但稍作调整以匹配逻辑 -->
+                    
+                  </tbody>
+                </table>
+                <div class="pull-right">
+                  <a id="btn-submit-application" class="btn btn-primary btn-large pull-right" href="javascript:void(0);">新增申请</a> 
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script>
+$(document).ready(function() {
+    /* 模拟的供应商数据
+    var supplierOptions = [
+        { code: "SUP-001", name: "供应商A" },
+        { code: "SUP-002", name: "供应商B" },
+        { code: "SUP-003", name: "供应商C" },
+        { code: "SUP-004", name: "一帆制衣原材料厂" },
+        { code: "SUP-005", name: "一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十" }
+    ]; */
+
+    var supplierOptions = {{ suppliers_json|safe }};
+
+    // 辅助函数：根据编码查找名称
+    function getSupplierNameByCode(code) {
+        for(var i=0; i<supplierOptions.length; i++) {
+            if(supplierOptions[i].code === code) {
+                return supplierOptions[i].name;
+            }
+        }
+        return "";
+    }
+
+    // 点击编辑按钮
+    $("#btn-edit").click(function() {
+        // 1. 获取当前值
+        var currentSupplierCode = $("#val-supplier-code").text().trim();
+        var currentSupplierName = $("#val-supplier-name").text().trim();
+        var currentReason = $("#val-reason").text().trim();
+
+        // 2. 替换供应商编码为下拉框 (Select2)
+        // 注意：Select2 需要一个空的 option 作为占位符
+        var selectHtml = '<select id="input-supplier-code" style="width: 100%;">';
+        selectHtml += '<option value="">请选择供应商</option>';
+        for(var i=0; i<supplierOptions.length; i++) {
+            var selected = (supplierOptions[i].code === currentSupplierCode) ? 'selected' : '';
+            // 显示格式：编码 - 名称
+            var displayText = supplierOptions[i].code + " - " + supplierOptions[i].name;
+            selectHtml += '<option value="' + supplierOptions[i].code + '" ' + selected + '>' + displayText + '</option>';
+        }
+        selectHtml += '</select>';
+        $("#val-supplier-code").html(selectHtml);
+        
+        // 初始化 Select2 插件
+        $("#input-supplier-code").select2();
+
+        // 3. 替换供应商名称为只读输入框
+        var nameInputHtml = '<input type="text" id="input-supplier-name" value="' + currentSupplierName + '" readonly style="width: 90%; background-color: #eee;" />';
+        $("#val-supplier-name").html(nameInputHtml);
+
+        // 4. 替换申请理由为输入框
+        var reasonInputHtml = '<input type="text" id="input-reason" value="' + currentReason + '" maxlength="50" style="width: 90%;" />';
+        $("#val-reason").html(reasonInputHtml);
+
+        // 5. 绑定下拉框变化事件 (联动逻辑)
+        $("#input-supplier-code").on("change", function() {
+            var selectedCode = $(this).val();
+            var newName = getSupplierNameByCode(selectedCode);
+            $("#input-supplier-name").val(newName);
+        });
+
+        // 6. 切换按钮显示
+        $(this).hide();
+        $("#btn-save").show();
+    });
+
+    // 点击保存按钮
+    $("#btn-save").click(function() {
+        // 1. 获取输入框/下拉框的新值
+        var newSupplierCode = $("#input-supplier-code").val();
+        var newSupplierName = $("#input-supplier-name").val();
+        var newReason = $("#input-reason").val();
+        $("#val-supplier-code .select2-container").css("border", ""); 
+        $("#input-reason").css("border", "");
+
+        var isValid = true;
+        // 1. 校验供应商 (针对 Select2 容器变红)
+        if(!newSupplierCode) {
+            // 修改：使用父容器查找 Select2 组件
+            $("#val-supplier-code .select2-container").css("border", "1px solid red");
+            isValid = false;
+        }
+        // 2. 校验申请理由
+        if(!newReason){
+            $("#input-reason").css("border", "1px solid red");
+            isValid = false;
+        }
+        // 3. 如果校验不通过，停止执行
+        if (!isValid) {
+            return;
+        }
+
+        // 2. 销毁 Select2 (防止内存泄漏或DOM残留，虽然这里直接替换HTML也会销毁，但显式销毁是好习惯)
+        $("#input-supplier-code").select2("destroy");
+
+        // 3. 将值写回 strong 标签
+        $("#val-supplier-code").text(newSupplierCode);
+        $("#val-supplier-name").text(newSupplierName);
+        $("#val-reason").empty(); // 先清空
+        if (newReason.length > 30) {
+            // 使用 document.createTextNode 防止 XSS 攻击，同时插入 <br> 标签
+            $("#val-reason").append(document.createTextNode(newReason.substring(0, 30)));
+            $("#val-reason").append("<br>");
+            $("#val-reason").append(document.createTextNode(newReason.substring(30)));
+        } else {
+            $("#val-reason").text(newReason);
+        }
+
+        // 4. 切换按钮显示
+        $(this).hide();
+        $("#btn-edit").show();
+
+        // 5. (可选) 保存逻辑
+        // console.log("保存:", newSupplierCode, newSupplierName, newReason);
+    });
+
+    var materialData = {{ materials_json|safe }};
+
+    // 全局变量：记录当前正在编辑的行（jQuery对象）
+    var $currentEditingRow = null;
+    // 全局变量：记录编辑前的原始HTML内容，用于取消时恢复
+    var originalRowHtml = "";
+
+    // 辅助函数：检查表格是否为空
+    function checkEmptyTable() {
+        var $tbody = $("#item-table-body");
+        if ($tbody.find("tr").length === 0 || $tbody.find(".empty-msg").length > 0) {
+            $tbody.html('<tr class="empty-msg"><td colspan="6" style="text-align:center; color:red;">请添加采购项！</td></tr>');
+        }
+    }
+
+    // 辅助函数：移除空消息提示
+    function removeEmptyMsg() {
+        $("#item-table-body .empty-msg").remove();
+    }
+
+    // 辅助函数：重新生成行号
+    function reindexRows() {
+        $("#item-table-body tr").not(".empty-msg").each(function(index) {
+            $(this).find(".row-index").text(index + 1);
+        });
+    }
+
+    // 辅助函数：取消当前的编辑状态
+    function cancelCurrentEdit() {
+        if ($currentEditingRow) {
+            // 检查是否是新建的行（通过 data-is-new 属性）
+            if ($currentEditingRow.data("is-new")) {
+                $currentEditingRow.remove(); // 如果是新建的，直接删除
+                checkEmptyTable(); // 检查是否变空
+            } else {
+                // 如果是已有行，恢复原状
+                $currentEditingRow.html(originalRowHtml);
+            }
+            $currentEditingRow = null;
+            originalRowHtml = "";
+        }
+    }
+
+    // 2. 点击“新增单项”
+    $("#btn-add-item").click(function() {
+        // 如果有正在编辑的行，先取消它
+        cancelCurrentEdit();
+        removeEmptyMsg();
+
+        var $tbody = $("#item-table-body");
+        var newIndex = $tbody.find("tr").length + 1;
+
+        // 创建新行 HTML
+        var trHtml = '<tr>' +
+            '<td class="row-index">' + newIndex + '</td>' +
+            '<td class="row-code"></td>' +
+            '<td class="row-desc right"></td>' +
+            '<td class="row-spec right"></td>' +
+            '<td class="row-qty right"></td>' +
+            '<td>' +
+                '<a href="javascript:void(0);" class="btn btn-warning btn-mini btn-row-cancel">取消</a>' +
+                '<a href="javascript:void(0);" class="btn btn-success btn-mini btn-row-save" style="margin-left: 10px;">保存</a>' +
+            '</td>' +
+            '</tr>';
+        
+        var $newRow = $(trHtml);
+        $newRow.data("is-new", true); // 标记为新行
+        $tbody.append($newRow);
+
+        // 立即进入编辑模式
+        enterEditMode($newRow);
+    });
+
+    // 3. 点击“编辑” (使用事件委托)
+    $(document).on("click", ".btn-row-edit", function() {
+        var $row = $(this).closest("tr");
+        
+        // 如果点击的不是当前正在编辑的行，且当前有其他行在编辑，先取消其他行的编辑
+        if ($currentEditingRow && $currentEditingRow[0] !== $row[0]) {
+            cancelCurrentEdit();
+        }
+
+        enterEditMode($row);
+    });
+
+    // 4. 点击“取消”
+    $(document).on("click", ".btn-row-cancel", function() {
+        cancelCurrentEdit();
+    });
+
+    // 5. 点击“删除”
+    $(document).on("click", ".btn-row-delete", function() {
+        $(this).closest("tr").remove();
+        reindexRows();
+        checkEmptyTable();
+    });
+
+    // 6. 点击“保存”
+    $(document).on("click", ".btn-row-save", function() {
+        var $row = $(this).closest("tr");
+        
+        // 1. 先重置所有错误样式 (关键修复：必须显式清除 .select2-container 的边框)
+        $row.find("input, select").css("border", ""); 
+        $row.find(".select2-container").css("border", ""); 
+
+        // 2. 获取控件的值
+        var $codeSelect = $row.find(".input-code");
+        var code = $codeSelect.val();
+        
+        // 兼容性修复：如果直接 .val() 取不到值，尝试用 Select2 专用方法获取
+        if (!code && $codeSelect.data("select2")) {
+            code = $codeSelect.select2("val");
+        }
+
+        var desc = $row.find(".input-desc").val();
+        var spec = $row.find(".input-spec").val();
+        var qty = $row.find(".input-qty").val();
+
+        // 3. 校验：所有字段不能为空
+        var isValid = true;
+
+        if (!code) { 
+            $row.find(".select2-container").css("border", "1px solid red"); 
+            isValid = false; 
+        }
+        if (!desc) { $row.find(".input-desc").css("border", "1px solid red"); isValid = false; }
+        if (!spec) { $row.find(".input-spec").css("border", "1px solid red"); isValid = false; }
+        if (!qty || parseFloat(qty) <= 0) { 
+            $row.find(".input-qty").css("border", "1px solid red"); 
+            isValid = false; 
+        }
+        if (!isValid) {
+            // alert("请填写完整所有字段！"); // 可选：如果觉得红框够明显，可以去掉弹窗
+            return;
+        }
+
+        // 4. 保存数据：销毁 Select2，将值写入 td
+        $codeSelect.select2("destroy");
+        
+        $row.find(".row-code").html(code);
+        $row.find(".row-desc").html(desc);
+        $row.find(".row-spec").html(spec);
+        $row.find(".row-qty").html('<strong>' + qty + '</strong>');
+
+        // 恢复按钮状态
+        var btnHtml = '<a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit">编辑</a>' +
+                      '<a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 10px;">删除</a>';
+        $row.find("td:last-child").html(btnHtml);
+
+        // 清除编辑状态标记
+        $row.removeData("is-new");
+        $currentEditingRow = null;
+        originalRowHtml = "";
+    });
+
+    // 核心函数：进入编辑模式
+    function enterEditMode($row) {
+        $currentEditingRow = $row;
+        // 保存原始 HTML (如果是新行，originalRowHtml 其实没太大用，因为取消会直接删除，但为了逻辑统一还是存一下)
+        // 注意：这里我们只保存 innerHTML，因为 tr 本身还在
+        originalRowHtml = $row.html();
+
+        // 获取当前值 (如果是新行，这些都是空的)
+        var curCode = $row.find(".row-code").text().trim();
+        var curDesc = $row.find(".row-desc").text().trim();
+        var curSpec = $row.find(".row-spec").text().trim();
+        var curQty = $row.find(".row-qty").text().trim();
+
+        var existingCodes = [];
+        $("#item-table-body tr").each(function() {
+            // 跳过当前正在编辑的行（如果是编辑已有行，自己不算重复；如果是新增行，它还没值也不影响）
+            if (this !== $row[0]) {
+                var code = $(this).find(".row-code").text().trim();
+                if (code) {
+                    existingCodes.push(code);
+                }
+            }
+        });
+
+        // 1. 构建物料编码下拉框
+        var selectHtml = '<select class="input-code" style="width:100%">';
+        selectHtml += '<option value="">请选择物料</option>';
+        for (var i = 0; i < materialData.length; i++) {
+            var m = materialData[i];
+            if (existingCodes.indexOf(m.code) !== -1 && m.code !== curCode) {
+                continue;
+            }
+            var selected = (m.code === curCode) ? "selected" : "";
+            selectHtml += '<option value="' + m.code + '" ' + selected + '>' + m.code + ' - ' + m.desc + '</option>';
+        }
+        selectHtml += '</select>';
+
+        // 2. 构建其他输入框
+        var descHtml = '<input type="text" class="input-desc" value="' + curDesc + '" readonly style="width:90%; background:#eee;">';
+        var specHtml = '<input type="text" class="input-spec" value="' + curSpec + '" readonly style="width:90%; background:#eee;">';
+        var qtyHtml = '<input type="number" class="input-qty" value="' + curQty + '" style="width:90%;" min="1">';
+
+        // 3. 构建按钮 (位置对应：编辑->取消，删除->保存)
+        var btnHtml = '<a href="javascript:void(0);" class="btn btn-warning btn-mini btn-row-cancel">取消</a>' +
+                      '<a href="javascript:void(0);" class="btn btn-success btn-mini btn-row-save" style="margin-left: 10px;">保存</a>';
+
+        // 4. 替换 DOM
+        $row.find(".row-code").html(selectHtml);
+        $row.find(".row-desc").html(descHtml);
+        $row.find(".row-spec").html(specHtml);
+        $row.find(".row-qty").html(qtyHtml);
+        $row.find("td:last-child").html(btnHtml);
+
+        // 5. 初始化 Select2
+        var $select = $row.find(".input-code");
+        $select.select2();
+
+        // 6. 绑定 Select2 联动事件
+        $select.on("change", function() {
+            var val = $(this).val();
+            var found = false;
+            for (var i = 0; i < materialData.length; i++) {
+                if (materialData[i].code === val) {
+                    $row.find(".input-desc").val(materialData[i].desc);
+                    $row.find(".input-spec").val(materialData[i].spec);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                $row.find(".input-desc").val("");
+                $row.find(".input-spec").val("");
+            }
+        });
+    }
+
+    // 7. 点击“新增申请” (提交整个单据)
+    $("#btn-submit-application").click(function() {
+        var errorMessages = [];
+
+        // 1. 检查表头是否处于编辑状态 (检查保存按钮是否显示)
+        if ($("#btn-save").is(":visible")) {
+            errorMessages.push("请先保存采购申请单据");
+        } else {
+            // 新增校验：检查供应商编码和申请理由是否为空
+            var supplierCode = $("#val-supplier-code").text().trim();
+            var reason = $("#val-reason").text().trim();
+
+            if (!supplierCode) {
+                errorMessages.push("供应商编码不能为空，请编辑单据");
+            }
+            if (!reason){
+                errorMessages.push("申请理由不能为空，请编辑单据");
+            }
+        }
+
+        // 2. 检查是否存在采购项
+        var itemCount = $("#item-table-body tr").not(".empty-msg").length;
+        if (itemCount === 0) {
+            errorMessages.push("请先添加采购项");
+        }
+
+        // 3. 检查是否有正在编辑的采购项
+        if ($currentEditingRow !== null) {
+            errorMessages.push("请先将所有的采购项保存");
+        }
+
+        // 如果有错误信息，弹窗提示
+        if (errorMessages.length > 0) {
+            alert(errorMessages.join("\n"));
+            return;
+        }
+
+        var supplierCode = $("#val-supplier-code").text().trim();
+        // 注意：reason 可能包含 <br>，text() 会忽略换行，这里简单处理取 text 即可，或者根据需求处理
+        var reason = $("#val-reason").text().trim(); 
+
+        // 2. 收集行数据
+        var items = [];
+        $("#item-table-body tr").not(".empty-msg").each(function() {
+            var $row = $(this);
+            var code = $row.find(".row-code").text().trim();
+            var qty = $row.find(".row-qty").text().trim();
+            
+            items.push({
+                code: code,
+                qty: qty
+            });
+        });
+
+        // 3. 发送 AJAX 请求
+        $.ajax({
+            url: "{{ url_for('procurement.submit_pr') }}",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                supplier_code: supplierCode,
+                reason: reason,
+                items: items
+            }),
+            success: function(res) {
+                if (res.code === 200) {
+                    alert("添加成功！申请单号：" + res.prcode);
+                    // 跳转回采购申请管理界面
+                    window.location.href = "{{ url_for('procurement.prmanage') }}";
+                } else {
+                    alert("提交失败：" + res.msg);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert("网络错误或服务器异常");
+                console.error(error);
+            }
+        });
+    });
+
+    // 初始化检查
+    checkEmptyTable();
+});
+</script>
+{% endblock %}

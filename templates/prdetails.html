@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}采购申请信息{% endblock %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> Home</a> <a href="#">Addons pages</a> <a href="#" class="current">invoice</a> </div>
+    <h1>采购申请详情</h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-briefcase"></i> </span>
+                    <h5>详细单据</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="row-fluid">
+                        <div class="span6">
+                            <table>
+                                <tbody>
+                                <tr><td><h4>采购申请</h4></td></tr>
+                                <tr><td><h5>申请人姓名：{{ prheader.guser.realname }}</h5></td></tr>
+                                <tr><td>邮箱：{{ prheader.guser.email }}</td></tr>
+                                <tr><td>申请单状态：{{ prheader.prstatus }}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="span6">
+                            <table class="table table-bordered table-invoice">
+                                <tbody>
+                                <tr>
+                                    <td class="width30">申请编号:</td>
+                                    <td class="width70"><strong>{{ prheader.prcode }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="width30">申请人:</td>
+                                    <td class="width70"><strong>{{ prheader.applicant }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>供应商编码:</td>
+                                    <td><strong id="val-supplier-code">{{ prheader.prsupplier }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>供应商名称:</td>
+                                    <td><strong id="val-supplier-name">{{ prheader.gsupplier.suppliername }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td class="width30">申请理由:</td>
+                                    <td class="width70"><strong id="val-reason">{{ prheader.reason }}</strong></td>
+                                </tr>
+                                </tbody>              
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="span12">
+                            <table class="table table-bordered table-invoice-full">
+                                <thead>
+                                    <tr>
+                                        <th class="head0" style="width: 5%;">行号</th>
+                                        <th class="head1" style="width: 25%;">物料编码</th>
+                                        <th class="head0 right" style="width: 30%;">物料描述</th>
+                                        <th class="head1 right" style="width: 30%;">规格型号</th>
+                                        <th class="head0 right" style="width: 10%;">申请数量</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="item-table-body">
+                                    {% for prline in prheader.prlines %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ prline.prmaterial }}</td>
+                                        <td class="right">{{ prline.gmaterial.materialdesc }}</td>
+                                        <td class="right">{{ prline.gmaterial.specification }}</td>
+                                        <td class="right"><strong>{{ prline.quantity }}</strong></td>
+                                    </tr>
+                                    {% endfor %} 
+                                </tbody>
+                            </table>
+                            <div class="pull-right">
+                                <a id="btn-audit-application" class="btn btn-success btn-large pull-right" href="javascript:void(0);">审核</a>
+                                <a id="btn-submit-application" class="btn btn-primary btn-large pull-right" style="margin-right: 20px;" href="{{ url_for('procurement.preview') }}">返回</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}采购申请审核{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/preview.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">采购申请审核</a> </div>
+    <h1>采购申请审核</h1>
+</div>
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-hand-right"></i> </span>
+                    <h5>审批操作</h5>
+                </div>
+                <div class="widget-content"> 
+                    <a href="#" class="btn btn-success" id="btnApprove">审核</a> <a href="#" class="btn btn-warning" id="btnReject">驳回</a> <a href="#" class="btn btn-info">刷新</a>
+                </div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>申请列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered table-striped with-check" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="title-table-checkbox" name="title-table-checkbox" data-uniform-scope="dt" /></th>
+                                <th>申请编号</th>
+                                <th>状态</th>
+                                <th>申请人</th>
+                                <th>申请理由</th>
+                                <th>申请时间</th>                
+                                <th>供应商编码</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prheader in prheaders %}
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox" data-uniform-scope="dt" value="{{ prheader.prcode }}" /></td>
+                                <td>{{ prheader.prcode }}</td>
+                                <td>{{ prheader.prstatus }}</td>
+                                <td>{{ prheader.applicant }}</td>
+                                <td>{{ prheader.reason }}</td>                 
+                                <td>{{ prheader.prdate }}</td>
+                                <td>{{ prheader.prsupplier }}</td>
+                                <td>
+                                <span> <a href="{{ url_for('procurement.prdetails', pr_code=prheader.prcode) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(document).ready(function() {
+  var $table = $('#materialTable');
+
+  function applyDtUniform() {
+    if (!$.uniform) return;
+
+    var $inputs = $table
+      .find('input[type=checkbox][data-uniform-scope="dt"]')
+      .filter(function() {
+        return $(this).parents('.checker').length === 0;
+      });
+
+    if ($inputs.length) $inputs.uniform();
+  }
+
+  var table = $table.dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aoColumnDefs": [
+      { "bSortable": false, "aTargets": [ 0 ] }
+    ],
+    "aaSorting": [[ 5, "desc" ]],
+    "oLanguage": {
+      "sLengthMenu": "展示 _MENU_ 页",
+      "sZeroRecords": "没有找到匹配的记录",
+      "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+      "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+      "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+      "sSearch": "搜索：",
+      "oPaginate": {
+        "sFirst": "首页",
+        "sPrevious": "上一页",
+        "sNext": "下一页",
+        "sLast": "尾页"
+      }
+    },
+    "fnDrawCallback": function() {
+      applyDtUniform();
+
+      var $all = $('#title-table-checkbox');
+      $all.prop('checked', false);
+      if ($.uniform) $.uniform.update($all);
+    },
+    "fnInitComplete": function() {
+      $('.dataTables_length select').select2({ minimumResultsForSearch: -1 });
+    }
+  });
+
+  applyDtUniform();
+
+  $(document).on('change', '#title-table-checkbox', function() {
+    var checked = this.checked;
+    var $pageRows = $table.find('tbody tr:visible');
+    var $cbs = $pageRows.find('input.row-checkbox[data-uniform-scope="dt"]');
+
+    $cbs.prop('checked', checked);
+    if ($.uniform) $.uniform.update($cbs);
+  });
+
+  $(document).on('click', '#btnReject', function(e) {
+    e.preventDefault();
+
+    var prcodes = $table.find('input.row-checkbox[data-uniform-scope="dt"]:checked')
+      .map(function() { return this.value; })
+      .get()
+      .filter(Boolean);
+
+    if (!prcodes.length) {
+      alert('请勾选需要驳回的申请');
+      return;
+    }
+
+    if (!confirm('确认驳回所选 ' + prcodes.length + ' 条采购申请？')) return;
+
+    $.ajax({
+      url: "{{ url_for('procurement.pr_reject') }}",
+      type: 'POST',
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+      data: JSON.stringify({ prcodes: prcodes }),
+      success: function(res) {
+        if (res && res.code === 200) {
+          alert(res.msg || '驳回成功');
+          window.location.reload(); // 简单直接：刷新列表
+        } else {
+          alert((res && res.msg) ? res.msg : '驳回失败');
+        }
+      },
+      error: function(xhr) {
+        alert('请求失败：' + (xhr.responseText || xhr.status));
+      }
+    });
+  });
+  
+  $(document).on('click', '#btnApprove', function(e) {
+    e.preventDefault();
+
+    var prcodes = $table.find('input.row-checkbox[data-uniform-scope="dt"]:checked')
+      .map(function() { return this.value; })
+      .get()
+      .filter(Boolean);
+
+    if (!prcodes.length) {
+      alert('请勾选需要审核的申请');
+      return;
+    }
+
+    if (!confirm('确认审核通过所选 ' + prcodes.length + ' 条采购申请？\n这将自动生成对应的采购订单。')) return;
+
+    $.ajax({
+      url: "{{ url_for('procurement.pr_approve') }}",
+      type: 'POST',
+      contentType: 'application/json; charset=utf-8',
+      dataType: 'json',
+      data: JSON.stringify({ prcodes: prcodes }),
+      success: function(res) {
+        if (res && res.code === 200) {
+          alert(res.msg || '审核成功');
+          window.location.reload(); 
+        } else {
+          alert((res && res.msg) ? res.msg : '审核失败');
+        }
+      },
+      error: function(xhr) {
+        alert('请求失败：' + (xhr.responseText || xhr.status));
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

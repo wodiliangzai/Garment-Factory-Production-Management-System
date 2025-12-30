@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}采购申请管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<style>
+  /* 1. 表格滚动容器 */
+  .table-scroll-wrapper {
+      width: 100%;
+      overflow-x: auto; /* 允许横向滚动 */
+      margin-bottom: 10px;
+      border-right: 1px solid #ddd; /* 弥补滚动时右侧边框视觉缺失 */
+  }
+
+  /* 2. 强制表格内容不换行，确保撑开宽度 */
+  #materialTable {
+      width: auto; /* 允许表格超出容器宽度 */
+      min-width: 100%;
+      max-width: none;
+  }
+  #materialTable th, 
+  #materialTable td {
+      white-space: nowrap; /* 禁止文字换行 */
+      vertical-align: middle;
+  }
+
+  /* 3. 固定最后一列（操作列） */
+  #materialTable th:last-child,
+  #materialTable td:last-child {
+      position: sticky;
+      right: 0; /* 固定在右侧 */
+      z-index: 1;
+      border-left: 1px solid #ddd; /* 左侧加个边框区分 */
+      box-shadow: -2px 0 5px rgba(0,0,0,0.05); /* 添加阴影增加层次感 */
+  }
+
+  /* 4. 处理固定列的背景色（防止透明导致文字重叠） */
+  /* 表头背景 */
+  #materialTable thead th:last-child {
+      background-color: #efefef; 
+      z-index: 2; /* 表头层级要比内容高 */
+  }
+  /* 奇数行背景 */
+  #materialTable tbody tr:nth-child(odd) td:last-child {
+      background-color: #f9f9f9;
+  }
+  /* 偶数行背景 */
+  #materialTable tbody tr:nth-child(even) td:last-child {
+      background-color: #ffffff;
+  }
+  /* 鼠标悬停时的背景色处理 */
+  #materialTable tbody tr:hover td:last-child {
+      background-color: #f6f6f6;
+  }
+  /* 1. 定义一个 Flex 容器，用于顶部和底部工具栏 */
+  /* 这会让容器内的元素自动左右分布，且垂直居中 */
+  .dt-toolbar-flex {
+      display: flex;
+      justify-content: space-between; /* 关键：让两个子元素分别靠左和靠右 */
+      align-items: center;            /* 关键：垂直居中对齐 */
+      padding: 12px 15px;             /* 统一设置：上下12px，左右15px间距 */
+      box-sizing: border-box;         /* 确保 padding 不会撑破宽度 */
+      width: 100%;
+  }
+
+  /* 2. 顶部工具栏特定样式 (白色背景) */
+  .dt-top-toolbar {
+      background-color: #fff;
+      border-bottom: 1px solid #eeeeee;
+  }
+
+  /* 3. 底部工具栏特定样式 (浅灰背景) */
+  .dt-bottom-toolbar {
+      background-color: #f9f9f9;
+      border-top: 1px solid #ddd;
+  }
+
+  /* 4. 重置 DataTables 内部元素的默认浮动和边距，让 Flexbox 接管布局 */
+  /* 这一步很重要，防止原有的 float:left/right 干扰我们的布局 */
+  .dataTables_length, 
+  .dataTables_filter, 
+  .dataTables_info, 
+  .dataTables_paginate {
+      float: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: auto !important;
+  }
+  .dataTables_filter {
+      /* 核心修改：强制给右侧增加 30px 的外边距 */
+      /* 这样搜索框就会往左移，不再紧贴右边缘，同时不影响左侧元素 */
+      margin-right: 20px !important; 
+      margin-top: 9px !important;
+  }
+  /* 5. 微调内部元素细节 */
+  .dataTables_length label,
+  .dataTables_filter label {
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      color: #666;
+      font-weight: normal;
+  }
+  
+  /* 搜索框输入框左侧加点间距 */
+  .dataTables_filter input {
+      margin-left: 10px;
+      margin-bottom: 0;
+      /* height: 30px; 
+      line-height: 30px; */
+  }
+  
+  /* 翻页按钮容器微调 */
+  .dataTables_paginate {
+      display: flex;
+      justify-content: flex-end;
+  }
+  @media (min-width: 768px) {
+      #editRoleModal {
+          width: 800px;       /* 设置宽度 */
+          margin-left: -400px; /* 设置为宽度的一半（负值）以保持居中 */
+      }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage') }}" class="current">采购申请</a> </div>
+    <h1>采购申请管理</h1>
+</div>
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-hand-right"></i> </span>
+                    <h5>申请操作</h5>
+                </div>
+                <div class="widget-content"> 
+                    <a href="{{ url_for('procurement.pradd') }}" class="btn btn-success">新建</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                </div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>申请列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th>申请编号</th>
+                                <th>状态</th>
+                                <th>申请人</th>
+                                <th>申请理由</th>
+                                <th>物料编码</th>
+                                <th>物料描述</th>
+                                <th>申请数量</th>
+                                <th>申请时间</th>
+                                <th>供应商编码</th>
+                                <th>供应商名称</th>
+                                <th>关联订单编号</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prline in prlines %}
+                            <tr>
+                                <td>{{ prline.prcode }}</td>
+                                <td>{{ prline.gprheader.prstatus }}</td>
+                                <td>{{ prline.gprheader.applicant }}</td>
+                                <td>{{ prline.gprheader.reason }}</td>
+                                <td>{{ prline.prmaterial }}</td>
+                                <td>{{ prline.gmaterial.materialdesc }}</td>
+                                <td>{{ prline.quantity }}</td>
+                                <td>{{ prline.gprheader.prdate }}</td>
+                                <td>{{ prline.gprheader.prsupplier }}</td>
+                                <td>{{ prline.gprheader.gsupplier.suppliername }}</td>
+                                <td>MO-GX20251210000169002</td>
+                                <td>
+                                <span> <a href="{{ url_for('procurement.prinfo', pr_code=prline.prcode) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(document).ready(function() {
+  $('#materialTable').dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aaSorting": [[ 4, "desc" ]],
+    "oLanguage": {
+          "sLengthMenu": "展示 _MENU_ 页",
+          "sZeroRecords": "没有找到匹配的记录",
+          "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+          "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+          "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+          "sSearch": "搜索：",
+          "oPaginate": {
+              "sFirst": "首页",
+              "sPrevious": "上一页",
+              "sNext": "下一页",
+              "sLast": "尾页"
+          }
+    }
+  });
+  
+  // 修复 Select2 在 DataTables 中的显示宽度问题
+  $('select').select2();
+  var $modalSelect = $('#editRoleModal select');
+  if ($modalSelect.length > 0) {
+      var s2Instance = $modalSelect.data('select2');
+      if (s2Instance) {
+          s2Instance.body = function() {
+              return $('#editRoleModal');
+          };
+      }
+  }
+});
+</script>
+{% endblock %}
