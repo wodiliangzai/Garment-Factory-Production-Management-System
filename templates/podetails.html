@@ -6,7 +6,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> Home</a> <a href="#">Addons pages</a> <a href="#" class="current">invoice</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.pomanage')}}">采购订单</a> <a href="#" class="current">采购订单详情</a> </div>
     <h1>采购订单详情</h1>
 </div>
 <div class="container-fluid"><hr>

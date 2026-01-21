@@ -2,6 +2,7 @@ from flask import Flask,redirect,url_for,render_template
 from blueprint.user import user_bp
 from blueprint.procurement import procurement_bp
 from blueprint.product import product_bp
+from blueprint.storage import storage_bp
 from exts import db,mail
 from flask_migrate import Migrate
 # 使用Flask类创建app对象
@@ -15,6 +16,7 @@ migrate = Migrate(app, db)
 app.register_blueprint(user_bp)
 app.register_blueprint(procurement_bp)
 app.register_blueprint(product_bp)
+app.register_blueprint(storage_bp)
 
 with app.app_context():
     #根据模型建表,如果数据库中模型中涉及的的表已经存在,就直接跳过,即使后续作出修改也不会影响

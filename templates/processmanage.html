@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}生产工艺管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/product.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}" class="current">生产工艺</a> </div>
+    <h1>生产工艺管理</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>工艺列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th>物料编码</th>
+                                <th>物料描述</th>
+                                <th>规格型号</th>
+                                <th>负责部门</th>
+                                <th>完成存放仓库</th>
+                                <th>使用状态</th>
+                                <th>创建时间</th>
+                                <th>创建人</th>
+                                <th>更新时间</th>
+                                <th>更新人</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for craft in crafts %}
+                            <tr>
+                                <td>{{ craft.materialcode }}</td>
+                                <td>{{ craft.gmaterial.materialdesc }}</td>
+                                <td>{{ craft.gmaterial.specification }}</td>
+                                <td>{{ craft.gcharacter.charactername }}</td>
+                                <td>{{ craft.gwarehouse.warehousename }}</td>
+                                <td>{{ craft.usagestatus }}</td>
+                                <td class="center">{{ craft.creationtime }}</td>
+                                <td>{{ craft.creater }}</td>
+                                <td>{{ craft.altertime }}</td>
+                                <td>{{ craft.alteruser }}</td>
+                                <td>
+                                    <span> <a href="{{ url_for('product.processinfo', craft_id=craft.craftid) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-info-sign"></i> </span>
+                    <h5>添加生产工艺</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <form class="form-horizontal" method="post" action="{{ url_for('product.addcraft') }}" name="basic_validate" id="basic_validate" novalidate="novalidate">
+                        {{ addcraftform.csrf_token }}
+                        <div class="control-group">
+                            <label class="control-label">{{addcraftform.materialcode.label}}</label>
+                            <div class="controls">
+                                {{addcraftform.materialcode}}
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{addcraftform.department.label}}</label>
+                            <div class="controls">
+                                {{addcraftform.department}}
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{addcraftform.warehouse.label}}</label>
+                            <div class="controls">
+                                {{addcraftform.warehouse}}
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            {{ addcraftform.add(class='btn btn-success') }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(document).ready(function() {
+  // 手动初始化物料表格
+  $('#materialTable').dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aaSorting": [[ 4, "desc" ]],
+    "oLanguage": {
+          "sLengthMenu": "展示 _MENU_ 页",
+          "sZeroRecords": "没有找到匹配的记录",
+          "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+          "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+          "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+          "sSearch": "搜索：",
+          "oPaginate": {
+              "sFirst": "首页",
+              "sPrevious": "上一页",
+              "sNext": "下一页",
+              "sLast": "尾页"
+          }
+    }
+  });
+  
+  // 修复 Select2 在 DataTables 中的显示宽度问题
+  $('select').select2();
+});
+</script>
+{% endblock %}

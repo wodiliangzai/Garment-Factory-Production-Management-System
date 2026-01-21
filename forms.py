@@ -92,3 +92,26 @@ class AltermaterialForm(FlaskForm):
     role_desc=StringField('规格型号',render_kw={'placeholder':'请输入规格型号'},validators=[DataRequired(message='请输入规格型号!'),Length(max=50,message="规格型号超长!")])
     role_type=SelectField('物料类型',choices=[('原材料','原材料'),('半成品','半成品'),('成品','成品')],render_kw={'placeholder':'请选择物料类型'},validators=[InputRequired(message='请选择物料类型')])
     alter=SubmitField('保存')
+
+class AddwarehouseForm(FlaskForm):
+    required=StringField('仓库编码',render_kw={'placeholder':'请输入仓库编码'},validators=[Length(max=50,message="仓库编码超长!")])
+    realname=StringField('仓库名称',render_kw={'placeholder':'请输入仓库名称'},validators=[Length(max=50,message="仓库名称超长!")])
+    add=SubmitField('添加仓库')
+
+class AlterwarehouseForm(FlaskForm):
+    role_code=StringField('仓库编码',render_kw={'placeholder':'请输入仓库编码','readonly': True})
+    role_name=StringField('仓库名称',render_kw={'placeholder':'请输入仓库名称'},validators=[DataRequired(message='请输入仓库名称!'),Length(max=50,message="仓库名称超长!")])
+    alter=SubmitField('保存')
+
+class CraftForm(FlaskForm):
+	role_code=StringField('物料编码',render_kw={'placeholder':'请输入物料编码','readonly': True})
+	department=SelectField('负责部门',render_kw={'placeholder':'请选择负责部门'},validators=[InputRequired(message='请选择负责部门')])
+	warehouse=SelectField('完成存放仓库',render_kw={'placeholder':'请选择完成存放仓库'},validators=[InputRequired(message='请选择完成存放仓库')])
+	alteruser=StringField('最近更新人',render_kw={'placeholder':'请输入最近更新人','readonly': True})
+	submit=SubmitField()
+
+class AddcraftForm(FlaskForm):
+    materialcode=SelectField('物料编码',render_kw={'placeholder':'请选择物料编码'},validators=[InputRequired(message='请选择物料编码')])
+    department=SelectField('负责部门',render_kw={'placeholder':'请选择负责部门'},validators=[InputRequired(message='请选择负责部门')])
+    warehouse=SelectField('完成存放仓库',render_kw={'placeholder':'请选择完成存放仓库'},validators=[InputRequired(message='请选择完成存放仓库')])
+    add=SubmitField('添加生产工艺')

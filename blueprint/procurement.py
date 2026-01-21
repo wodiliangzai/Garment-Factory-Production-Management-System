@@ -2,9 +2,12 @@ from flask import Blueprint,render_template,json,jsonify,redirect,url_for,sessio
 from datetime import datetime
 import string
 from exts import db
-from models import UserModel,SupplierModel,MaterialModel,PRHeaderModel,PRLineModel,POHeaderModel,POLineModel
+from models import UserModel,SupplierModel,MaterialModel,PRHeaderModel,PRLineModel,POHeaderModel,POLineModel,ReceiptModel
 from forms import AddsupplierForm,AltersupplierForm
 from sqlalchemy import text
+from snowflake import SnowflakeGenerator
+
+gen = SnowflakeGenerator(0)
 
 procurement_bp=Blueprint('procurement',__name__,url_prefix='/procurement')
 
@@ -398,3 +401,59 @@ def pr_approve():
             return jsonify({'code': 500, 'msg': '审核失败：数据库提示“无效的采购申请编号”，请检查数据一致性。'})
         # 其他错误
         return jsonify({'code': 500, 'msg': f"系统错误: {err_str}"})
+    
+@procurement_bp.post('/po_place_order')
+def po_place_order():
+    data = request.get_json(silent=True) or {}
+    pocodes = data.get('pocodes') or []
+
+    if not isinstance(pocodes, list) or not pocodes:
+        return jsonify({'code': 400, 'msg': '请勾选需要下单的订单'})
+    
+    # 去重
+    pocodes = list(set(pocodes))
+    current_time = datetime.now()
+
+    try:
+        # 1. 查询并锁定选中的订单头 (with_for_update 实现数据库行锁)
+        # 注意：在 SQL Server 中，这通常会添加 UPDLOCK 或 XLOCK
+        po_headers = POHeaderModel.query.filter(
+            POHeaderModel.pocode.in_(pocodes),
+            POHeaderModel.postatus == '待下单'
+        ).with_for_update().all()
+
+        if not po_headers:
+            return jsonify({'code': 404, 'msg': '未找到有效的待下单订单，请刷新页面重试'})
+
+        processed_count = 0
+
+        for header in po_headers:
+            # 2. 遍历该订单的所有采购项
+            # 注意：这里假设 polines 关系已在模型中定义，且数据已加载
+            # 如果 polines 很多，可以考虑单独查询，但通常订单行数有限，直接访问关系即可
+            for line in header.polines:
+                # 3. 生成收料单据
+                new_receipt = ReceiptModel(
+                    receiptid=str(next(gen)), # 利用 SnowflakeGenerator 生成主键
+                    materialcode=line.pomaterial,
+                    quantity=line.quantity,
+                    suppliercode=header.posupplier,
+                    status='待接收',
+                    pocode=header.pocode,
+                    creationtime=current_time
+                )
+                db.session.add(new_receipt)
+            
+            # 4. 更新订单头状态
+            header.postatus = '已下单'
+            header.orderdate = current_time
+            processed_count += 1
+
+        # 5. 提交事务 (释放锁)
+        db.session.commit()
+
+        return jsonify({'code': 200, 'msg': f'成功下单 {processed_count} 个采购订单，已生成对应收料单。'})
+
+    except Exception as e:
+        db.session.rollback() # 回滚事务，释放锁
+        return jsonify({'code': 500, 'msg': f'下单失败: {str(e)}'})

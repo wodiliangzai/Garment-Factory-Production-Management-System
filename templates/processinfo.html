@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}生产工艺信息{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/jquery.treetable.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/jquery.treetable.theme.default.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/processinfo.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}">生产工艺</a> <a href="#" class="current">工艺信息</a> </div>
+    <h1>生产工艺信息</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-info-sign"></i> </span>
+                    <h5>编辑工艺信息</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <form class="form-horizontal" method="post" action="{{ url_for('product.updatecraft', craft_id=craft_id) }}" name="basic_validate" id="basic_validate" novalidate="novalidate">
+                        {{craftform.csrf_token}}
+                        <!-- 第一行：物料编码 & 负责部门 -->
+                        <div class="row-fluid">
+                            <div class="span6">
+                            <div class="control-group">
+                                <label class="control-label">{{craftform.role_code.label}}</label>
+                                <div class="controls">
+                                    {{craftform.role_code(class='span11')}}
+                                </div>
+                            </div>
+                            </div>
+                            <div class="span6">
+                            <div class="control-group">
+                                <label class="control-label">{{craftform.department.label}}</label>
+                                <div class="controls">
+                                    {{craftform.department}}
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- 第二行：完成存放仓库 & 是否有效 -->
+                        <div class="row-fluid">
+                            <div class="span6">
+                            <div class="control-group">
+                                <label class="control-label">{{craftform.warehouse.label}}</label>
+                                <div class="controls">
+                                    {{craftform.warehouse}}
+                                </div>
+                            </div>
+                            </div>
+                            <div class="span6">
+                            <div class="control-group">
+                                <label class="control-label">{{craftform.alteruser.label}}</label>
+                                <div class="controls">
+                                    {{craftform.alteruser(class='span11')}}
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            {{craftform.submit(value='修改工艺信息',class='btn btn-success')}}
+                            <button type="button" id="btn-delete-craft" class="btn btn-danger">删除工艺信息</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-list"></i> </span>
+                    <h5>工艺配方</h5>
+                    <div class="buttons-right">
+                        <a id="btn-add-recipe" class="btn btn-primary btn-mini btn-spacing" href="javascript:void(0);" style="margin-top: 9px; height: 18px;"><i class="icon-plus"></i> 添加配方</a>
+                        <span id="toggle-all-btn" class="label label-info btn-toggle-tree">全部收缩</span>
+                    </div>
+                </div>
+                <div class="widget-content nopadding">
+                    <!-- 给表格添加 id="recipe-table" 方便 JS 调用 -->
+                    <table id="recipe-table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 40%;">组件物料编码</th>
+                                <th style="width: 20%;">物料描述</th>
+                                <th style="width: 20%;">规格型号</th>
+                                <th style="width: 10%;">组件用量</th>
+                                <!-- 新增操作列 -->
+                                <th style="width: 10%;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for node in recipe_tree %}
+                            <!-- 
+                                修改说明：
+                                data-tt-id: 现在是唯一的 formulaid
+                                data-tt-parent-id: 是父级的 formulaid (或顶层物料码)
+                                data-material-code: 新增属性，用于显示原本的物料编码
+                            -->
+                            <tr data-tt-id="{{ node.id }}" data-tt-parent-id="{{ node.parent }}" data-formula-id="{{ node.formulaid }}" data-material-code="{{ node.material_code }}">
+                                <!-- 显示时，取 material_code -->
+                                <td class="row-code">{{ node.material_code }}</td>
+                                <td class="row-desc">{{ node.desc }}</td>
+                                <td class="row-spec">{{ node.spec }}</td>
+                                <td class="row-qty">{{ node.qty }}</td>
+                                <td>
+                                    <a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit">编辑</a>
+                                    <a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 2px;">删除</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.treetable.js')}}"></script>
+<script>
+  $(document).ready(function() {
+    $("#recipe-table").treetable({ 
+      expandable: true,
+      initialState: 'expanded',
+      indent: 19 
+    });
+
+    var isExpanded = true;
+    $("#toggle-all-btn").click(function() {
+      if (isExpanded) {
+        $("#recipe-table").treetable("collapseAll");
+        $(this).text("全部展开").removeClass("label-info").addClass("label-important");
+      } else {
+        $("#recipe-table").treetable("expandAll");
+        $(this).text("全部收缩").removeClass("label-important").addClass("label-info");
+      }
+      isExpanded = !isExpanded;
+    });
+
+    var materialData = {{ materials_json|safe }};
+
+    var $currentEditingRow = null;
+    var originalRowHtml = ""; // 保存编辑前的 HTML，用于取消
+
+    function showConfirmPopover($targetBtn, message, onConfirm) {
+        $(".popover-confirm").remove(); // 移除旧的
+        var html = 
+            '<div class="popover-confirm">' +
+                '<div class="arrow"></div>' +
+                '<div class="popover-confirm-title"><i class="icon-exclamation-sign"></i> 提示</div>' +
+                '<div class="popover-confirm-content">' + message + '</div>' +
+                '<div class="popover-confirm-actions">' +
+                    '<button class="btn btn-mini btn-default btn-cancel-pop">取消</button>' +
+                    '<button class="btn btn-mini btn-danger btn-ok-pop">确定</button>' +
+                '</div>' +
+            '</div>';
+        
+        var $popover = $(html);
+        $("body").append($popover);
+
+        var offset = $targetBtn.offset();
+        var btnWidth = $targetBtn.outerWidth();
+        var btnHeight = $targetBtn.outerHeight();
+        var popWidth = 220; 
+
+        var top = offset.top + btnHeight + 10;
+        var left = offset.left + (btnWidth / 2) - (popWidth / 2);
+
+        $popover.css({ top: top, left: left }).show();
+
+        $popover.find(".btn-cancel-pop").click(function() { $popover.remove(); });
+        $popover.find(".btn-ok-pop").click(function() {
+            $popover.remove();
+            if (typeof onConfirm === "function") onConfirm();
+        });
+
+        $(document).one("click", function(e) {
+            if (!$(e.target).closest(".popover-confirm").length && !$(e.target).closest($targetBtn).length) {
+                $popover.remove();
+            }
+        });
+    }
+
+    $("#btn-delete-craft").click(function() {
+        var $btn = $(this);
+        showConfirmPopover($btn, "警告：确定要删除该工艺信息吗？关联的配方也将一并删除，且无法恢复。", function() {
+            // 跳转到删除路由
+            window.location.href = "{{ url_for('product.deletecraft', craft_id=craft_id) }}";
+        });
+    });
+
+    $("#btn-add-recipe").click(function() {
+        if ($currentEditingRow) {
+            $(".btn-row-cancel").trigger("click");
+        }
+
+        // 顶层添加：父级ID是当前工艺产出的物料编码
+        var topParentMaterial = $("input[name='role_code']").val(); 
+        
+        // 选中行添加子节点（如果支持）：
+        // var parentNode = $("#recipe-table").treetable("getSelectedNode");
+        // var parentId = parentNode ? parentNode.id : topParentMaterial;
+        
+        // 按照您目前的逻辑是只都在第一层添加：
+        var parentId = topParentMaterial;
+
+        // 生成一个临时的唯一ID，防止冲突
+        var newTempId = "temp-" + new Date().getTime();
+
+        var trHtml = '<tr data-tt-id="' + newTempId + '" data-tt-parent-id="' + parentId + '">' +
+            '<td class="row-code"></td>' + // 此时还没有物料码，显示为空
+            '<td class="row-desc"></td>' +
+            '<td class="row-spec"></td>' +
+            '<td class="row-qty"></td>' +
+            '<td>' +
+                '<a href="javascript:void(0);" class="btn btn-warning btn-mini btn-row-cancel">取消</a>' +
+                '<a href="javascript:void(0);" class="btn btn-success btn-mini btn-row-save" style="margin-left: 5px;">保存</a>' +
+            '</td>' +
+            '</tr>';
+        
+        var $node = $(trHtml);
+        $node.data("is-new", true);
+        
+        // 如果 parentId 在表格里找不到 (即顶层物料)，treetable 会当作根节点添加
+        var parentNode = $("#recipe-table").treetable("node", parentId);
+        $("#recipe-table").treetable("loadBranch", parentNode || null, $node);
+
+        enterEditMode($node);
+    });
+
+    $(document).on("click", ".btn-row-edit", function() {
+        var $row = $(this).closest("tr");
+        if ($currentEditingRow && $currentEditingRow[0] !== $row[0]) {
+            cancelCurrentEdit();
+        }
+        enterEditMode($row);
+    });
+
+    $(document).on("click", ".btn-row-cancel", function() {
+        cancelCurrentEdit();
+    });
+
+    $(document).on("click", ".btn-row-delete", function() {
+        var $btn = $(this);
+        var $row = $btn.closest("tr");
+        var formulaId = $row.attr("data-formula-id");
+
+        // 如果是刚刚添加还没保存的行，直接在该处处理
+        if (!formulaId) {
+             var id = $row.attr("data-tt-id");
+             $("#recipe-table").treetable("removeNode", id);
+             return;
+        }
+
+        showConfirmPopover($btn, "确定删除此配方吗？删除父节点将连同子节点一起删除。", function() {
+             // --- 发送 AJAX 请求 ---
+             $.ajax({
+                url: "{{ url_for('product.formula_delete') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    formula_id: formulaId
+                }),
+                success: function(res) {
+                    if (res.code === 200) {
+                        window.location.href = "{{ url_for('product.processinfo', craft_id=craft_id) }}";
+                    } else {
+                        alert("删除失败: " + res.msg);
+                    }
+                },
+                error: function(err) {
+                     alert("系统错误");
+                }
+             });
+        });
+    });
+
+    $(document).on("click", ".btn-row-save", function() {
+        var $btn = $(this);
+        var $row = $btn.closest("tr");
+
+        var $codeSelect = $row.find("select.input-code"); 
+
+        var code = $codeSelect.val(); 
+        if (!code && $codeSelect.data("select2")) {
+             code = $codeSelect.select2("val");
+        }
+        
+        var desc = $row.find(".input-desc").val();
+        var spec = $row.find(".input-spec").val();
+        var qty = $row.find(".input-qty").val();
+
+        var formulaId = $row.attr("data-formula-id"); 
+        var parentId = $row.attr("data-tt-parent-id");
+
+        var isValid = true;
+        $row.find(".select2-choice, input").css("border", "");
+        $row.find(".select2-container").css("border", ""); 
+        
+        if (!code) { 
+            $row.find(".select2-choice").css("border", "1px solid red"); 
+            isValid = false; 
+        }
+        if (!desc) { $row.find(".input-desc").css("border", "1px solid red"); isValid = false; }
+        if (!qty)  { $row.find(".input-qty").css("border", "1px solid red"); isValid = false; }
+
+        if (!isValid) return;
+
+        showConfirmPopover($btn, "确定保存吗？", function() {
+            // --- 发送 AJAX 请求 ---
+            $.ajax({
+                url: "{{ url_for('product.formula_update') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    formula_id: formulaId, // 如果为空，后端视为新增
+                    craft_id: "{{ craft_id }}", // 当前工艺ID上下文
+                    combination: parentId, // 父级物料
+                    component: code,       // 子级物料
+                    qty: qty
+                }),
+                success: function(res) {
+                    if (res.code === 200) {
+                        // --- 这里保留并集成原有的UI更新逻辑 ---
+                        $codeSelect.select2("destroy");
+                        
+                        var newUniqueId = res.formula_id; 
+
+                        // 更新行的属性
+                        $row.attr("data-tt-id", newUniqueId);
+                        $row.attr("data-formula-id", newUniqueId);
+                        $row.attr("data-material-code", code);
+
+                        // 3. 恢复表格显示内容
+                        var $codeTd = $row.find("td.row-code");
+                        var $indenter = $codeTd.find("span.indenter"); 
+                        $codeTd.contents().filter(function() { return this !== $indenter[0]; }).remove();
+                        $codeTd.append(document.createTextNode(code));
+                        
+                        $row.find("td.row-desc").text(desc);
+                        $row.find("td.row-spec").text(spec);
+                        $row.find("td.row-qty").text(qty);
+
+                        var btnHtml = '<a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit">编辑</a>' +
+                                      '<a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 5px;">删除</a>';
+                        $row.find("td:last-child").html(btnHtml);
+
+                        $row.removeData("is-new");
+                        $currentEditingRow = null;
+                        originalRowHtml = "";      
+                        // 提示成功
+                        window.location.href = "{{ url_for('product.processinfo', craft_id=craft_id) }}";
+                    } else {
+                        alert("保存失败: " + res.msg);
+                    }
+                },
+                error: function(err) {
+                    alert("系统错误");
+                    console.error(err);
+                }
+            });
+        });
+    });
+
+    function enterEditMode($row) {
+        $currentEditingRow = $row;
+        originalRowHtml = $row.html(); 
+
+        var $codeTdClone = $row.find(".row-code").clone();
+        $codeTdClone.find(".indenter").remove();
+        var curCode = $row.attr("data-material-code"); 
+        if(!curCode) {
+             // 兼容旧数据或刚刚添加的情况，尝试从文本取
+             var $codeTdClone = $row.find(".row-code").clone();
+             $codeTdClone.find(".indenter").remove();
+             curCode = $codeTdClone.text().trim();
+        }
+        
+        var curDesc = $row.find(".row-desc").text().trim();
+        var curSpec = $row.find(".row-spec").text().trim();
+        var curQty = $row.find(".row-qty").text().trim(); // 这里可能包含单位，需自行处理
+
+        var selectHtml = '<select class="input-code">'; // span12 撑满
+        selectHtml += '<option value="">请选择物料</option>';
+        $.each(materialData, function(i, m) {
+            var selected = (m.code === curCode) ? "selected" : "";
+            selectHtml += '<option value="' + m.code + '" ' + selected + '>' + m.code + ' - ' + m.desc + '</option>';
+        });
+        selectHtml += '</select>';
+
+        var descHtml = '<input type="text" class="input-desc span12" value="' + curDesc + '" readonly style="background:#eee;">';
+        var specHtml = '<input type="text" class="input-spec span12" value="' + curSpec + '" readonly style="background:#eee;">';
+        var qtyHtml = '<input type="text" class="input-qty span12" value="' + curQty + '">';
+
+        var $codeTd = $row.find(".row-code");
+        var $indenter = $codeTd.find("span.indenter"); // 获取引用
+        $codeTd.contents().filter(function(){ return this.nodeType === 3; }).remove(); // 移除文本节点
+        $codeTd.append(selectHtml); // 添加 select (此时 indenter 还在前面)
+
+        $row.find(".row-desc").html(descHtml);
+        $row.find(".row-spec").html(specHtml);
+        $row.find(".row-qty").html(qtyHtml);
+
+        var btnHtml = '<a href="javascript:void(0);" class="btn btn-warning btn-mini btn-row-cancel">取消</a>' +
+                      '<a href="javascript:void(0);" class="btn btn-success btn-mini btn-row-save" style="margin-left: 5px;">保存</a>';
+        $row.find("td:last-child").html(btnHtml);
+
+        var $select = $row.find(".input-code");
+        $select.select2();
+        
+        $select.on("change", function() {
+            var val = $(this).val();
+            var m = materialData.find(function(item) { return item.code === val; });
+            if (m) {
+                $row.find(".input-desc").val(m.desc);
+                $row.find(".input-spec").val(m.spec);
+            }
+        });
+    }
+
+    function cancelCurrentEdit() {
+        if ($currentEditingRow) {
+            if ($currentEditingRow.data("is-new")) {
+                var id = $currentEditingRow.attr("data-tt-id");
+                $("#recipe-table").treetable("removeNode", id);
+            } else {
+                var $codeTd = $currentEditingRow.find("td.row-code");
+                var $indenter = $codeTd.find("span.indenter"); 
+                var $select = $currentEditingRow.find("select.input-code");
+                if ($select.length > 0 && $select.data("select2")) {
+                    $select.select2("destroy");
+                }
+
+                var $temp = $("<div>").html(originalRowHtml);
+                var orgCode = $temp.find("td.row-code").text().trim(); // 纯文本
+                var orgDesc = $temp.find("td.row-desc").html();
+                var orgSpec = $temp.find("td.row-spec").html();
+                var orgQty  = $temp.find("td.row-qty").html();
+                var orgBtns = $temp.find("td:last-child").html();
+
+                $codeTd.contents().filter(function() { return this !== $indenter[0]; }).remove();
+                $codeTd.append(document.createTextNode(orgCode));
+
+                $currentEditingRow.find("td.row-desc").html(orgDesc);
+                $currentEditingRow.find("td.row-spec").html(orgSpec);
+                $currentEditingRow.find("td.row-qty").html(orgQty);
+                $currentEditingRow.find("td:last-child").html(orgBtns);
+            }
+            $currentEditingRow = null;
+            originalRowHtml = "";
+        }
+    }
+
+  });
+</script>
+{% endblock %}

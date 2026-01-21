@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}采购申请管理{% endblock %}
+{% block title %}采购申请信息{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
@@ -60,8 +60,8 @@
 
 {% block body %}
 <div id="content-header">
-<div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> Home</a> <a href="#">Addons pages</a> <a href="#" class="current">invoice</a> </div>
-    <h1>采购申请详情</h1>
+<div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage')}}">采购申请</a> <a href="#" class="current">采购申请信息</a> </div>
+    <h1>采购申请信息</h1>
 </div>
 <div class="container-fluid"><hr>
     <div class="row-fluid">

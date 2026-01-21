@@ -1,0 +1,147 @@
+#recipe-table th {
+    font-size: 12px; /* 表头字体 */
+    font-weight: bold;
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+#recipe-table td {
+    font-size: 12px; /* 内容字体 */
+    vertical-align: middle; /* 垂直居中 */
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+/* 调整 TreeTable 缩进列的文字垂直对齐 */
+#recipe-table td span.indenter {
+    margin-top: -2px; /* 微调图标位置 */
+}
+
+/* 右上角按钮的样式，模仿 Matrix Admin 的 label */
+.buttons-right {
+    float: right;
+    margin-right: 10px;
+    margin-top: 0px;
+}
+
+.btn-toggle-tree {
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0px 8px;
+}
+/* === 新增样式 === */
+/* 1. 按钮组间距 */
+.btn-spacing {
+    margin-right: 15px; 
+    margin-top: -2px; /* 微调对齐 */
+}
+
+/* 2. 确认提示框样式 (源自 prinfo.html) */
+.popover-confirm {
+    position: absolute;
+    z-index: 1010;
+    width: 220px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    display: none;
+    text-align: left; /* 重置文本对齐 */
+    white-space: normal; /* 允许换行 */
+}
+.popover-confirm .arrow {
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    margin-left: -11px;
+    border-width: 11px;
+    border-style: solid;
+    border-color: transparent;
+    border-bottom-color: rgba(0, 0, 0, 0.25);
+}
+.popover-confirm .arrow:after {
+    position: absolute;
+    top: 1px;
+    left: -10px;
+    content: " ";
+    border-width: 10px;
+    border-style: solid;
+    border-color: transparent;
+    border-bottom-color: #fff;
+}
+.popover-confirm-title {
+    color: #f89406;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+.popover-confirm-content {
+    text-align: center;
+    font-size: 14px;
+    margin-bottom: 15px;
+    color: #333;
+}
+.popover-confirm-actions {
+    text-align: center;
+}
+.popover-confirm-actions .btn {
+    margin: 0 5px;
+}
+
+/* 3. 编辑状态下的样式微调 */
+#recipe-table input, #recipe-table select {
+    margin-bottom: 0;
+    height: 26px; /* 稍微调小一点适应表格 */
+    line-height: 26px;
+}
+/* 修复：去除 widget-title 和表格之间的间隙 */
+.widget-box .widget-content.nopadding {
+    border-top: 0; /* 去掉可能的上边框 */
+}
+
+/* 确保表格头部紧贴 widget-title */
+#recipe-table {
+    margin-top: 0 !important;
+    border-top: none; 
+    border-radius: 0; /* 移除圆角以贴合 */
+}
+
+/* 某些模板版本中 widget-title可能有底部margin */
+.widget-title {
+    margin-bottom: 0 !important;
+}
+
+#recipe-table td.row-code {
+    display: flex;
+    align-items: center; /* 垂直居中对齐 */
+    min-height: 48px;    /* 稍微给一点最小高度，确保和右边输入框高度一致 */
+    box-sizing: border-box; 
+}
+
+/* 2. 也是核心：防止缩进图标被挤压，并设置右边距 */
+#recipe-table td.row-code .indenter {
+    flex-shrink: 0;   /* 禁止被压缩 */
+    margin-right: 5px; /* 让图标和输入框之间留点缝隙 */
+}
+
+/* 3. 强制 Select2 下拉框自适应剩余宽度，而不是 100% */
+#recipe-table td.row-code .select2-container {
+    flex-grow: 1;     /* 自动占据剩余空间 */
+    width: auto !important; /* 覆盖插件默认计算的固定宽度 */
+    margin-bottom: 0px; 
+}
+
+/* 4. 对齐微调：确保 Select2 内部文字垂直居中 */
+#recipe-table td.row-code .select2-choice {
+    line-height: 26px; /* 与 input 高度一致 */
+    height: 26px;
+}
+
+/* 5. 确保这一行的其他 input 也垂直居中 */
+#recipe-table td {
+    vertical-align: middle;
+}
+.form-horizontal .row-fluid:first-child .control-group {
+    border-top: none;
+}

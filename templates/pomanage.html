@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">采购订单</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.pomanage')}}" class="current">采购订单</a> </div>
     <h1>采购订单管理</h1>
 </div>
 <div class="container-fluid">
@@ -22,7 +22,7 @@
                     <h5>下达操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    <a href="#" class="btn btn-success">下单</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                    <a href="javascript:void(0);" id="btn-place-order" class="btn btn-success">下单</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
                 </div>
             </div>
             <div class="widget-box">
@@ -52,7 +52,7 @@
                             <tr>
                                 <td>
                                     {% if poheader.purchaser == session['username'] and poheader.postatus=='待下单' %}
-                                    <input type="checkbox" class="row-checkbox" data-uniform-scope="dt" />
+                                    <input type="checkbox" class="row-checkbox" value="{{poheader.pocode}}" data-uniform-scope="dt" />
                                     {% endif %}
                                 </td>
                                 <td>{{poheader.pocode}}</td>
@@ -150,6 +150,41 @@ $(document).ready(function() {
 
     $cbs.prop('checked', checked);
     if ($.uniform) $.uniform.update($cbs);
+  });
+
+  $('#btn-place-order').click(function() {
+      var selectedPos = [];
+      // 获取所有被选中的复选框的值
+      $('#materialTable tbody input.row-checkbox:checked').each(function() {
+          selectedPos.push($(this).val());
+      });
+
+      if (selectedPos.length === 0) {
+          alert('请至少选择一个待下单的采购订单！');
+          return;
+      }
+
+      if (!confirm('确定要对选中的 ' + selectedPos.length + ' 个订单进行下单操作吗？')) {
+          return;
+      }
+
+      $.ajax({
+          url: "{{ url_for('procurement.po_place_order') }}",
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({ pocodes: selectedPos }),
+          success: function(response) {
+              if (response.code === 200) {
+                  alert(response.msg);
+                  window.location.reload();
+              } else {
+                  alert(response.msg);
+              }
+          },
+          error: function(xhr, status, error) {
+              alert('系统错误: ' + error);
+          }
+      });
   });
 });
 </script>

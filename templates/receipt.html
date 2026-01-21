@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}领料入库{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/preview.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('storage.receipt')}}" class="current">领料入库</a> </div>
+    <h1>领料入库</h1>
+</div>
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-hand-right"></i> </span>
+                    <h5>入库操作</h5>
+                </div>
+                <div class="widget-content"> 
+                    <a href="#" id="btn-inbound" class="btn btn-success">入库</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                </div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>领料单列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered table-striped with-check" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="title-table-checkbox" name="title-table-checkbox" data-uniform-scope="dt" /></th>
+                                <th>物料编码</th>
+                                <th>物料描述</th>
+                                <th>规格型号</th>
+                                <th>数量</th>             
+                                <th>供应商编码</th>
+                                <th>供应商名称</th>
+                                <th>供应商地址</th>
+                                <th>状态</th>
+                                <th>存放仓库</th>
+                                <th>生成日期</th>
+                                <th>接收日期</th>
+                                <th>来源订单</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in receipt_items %}
+                            <tr>
+                                <td>
+                                    {% if item.status == '待接收' %}
+                                    <input type="checkbox" class="row-checkbox" value="{{item.receiptid}}" data-uniform-scope="dt" />
+                                    {% endif %}
+                                </td>
+                                <td>{{item.materialcode}}</td>
+                                <td>{{item.gmaterial.materialdesc}}</td>
+                                <td>{{item.gmaterial.specification}}</td>
+                                <td>{{item.quantity}}</td>
+                                <td>{{item.suppliercode}}</td>
+                                <td>{{item.gsupplier.suppliername}}</td>
+                                <td>{{item.gsupplier.supplieraddress}}</td>
+                                <td>{{item.status}}</td>
+                                <td>
+                                    {% if item.warehousecode %}
+                                        {{item.warehousecode}}
+                                    {% else %}
+                                        未指定
+                                    {% endif %}
+                                </td>
+                                <td>{{item.creationtime}}</td>
+                                <td>
+                                    {% if item.receiptdate %}
+                                        {{item.receiptdate}}
+                                    {% endif %}
+                                </td>
+                                <td>{{item.pocode}}</td>                   
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="inboundModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">选择入库仓库</h3>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="control-group">
+                <label class="control-label">入库仓库 :</label>
+                <div class="controls">
+                    <select id="warehouseSelect" style="width: 220px;">
+                        {% for wh in warehouses %}
+                        <option value="{{ wh.warehousecode }}">{{ wh.warehousecode }} - {{ wh.warehousename }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div class="modal-footer" style="position: relative;">
+        <!-- 左下角提示信息区域 -->
+        <span id="modal-msg" style="position: absolute; left: 20px; top: 15px; font-weight: bold;"></span>
+        <button class="btn" data-dismiss="modal" aria-hidden="true">取消</button>
+        <button class="btn btn-primary" id="btn-confirm-inbound">确定</button>
+    </div>
+</div>
+<div id="alertModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="alertModalLabel">提示</h3>
+    </div>
+    <div class="modal-body">
+        <h4>请至少选择一条数据进行入库操作！</h4>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true">确定</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(document).ready(function() {
+  var $table = $('#materialTable');
+
+  $('#warehouseSelect').select2(); 
+  
+  var $modalSelect = $('#inboundModal select');
+  if ($modalSelect.length > 0) {
+      var s2Instance = $modalSelect.data('select2');
+      if (s2Instance) {
+          // 将下拉菜单的容器指向模态框，防止被模态框遮挡
+          s2Instance.body = function() {
+              return $('#inboundModal');
+          };
+      }
+  }
+
+  function applyDtUniform() {
+    if (!$.uniform) return;
+
+    var $inputs = $table
+      .find('input[type=checkbox][data-uniform-scope="dt"]')
+      .filter(function() {
+        return $(this).parents('.checker').length === 0;
+      });
+
+    if ($inputs.length) $inputs.uniform();
+  }
+
+  $('#btn-inbound').click(function(e) {
+      e.preventDefault();
+      
+      // 获取所有选中的复选框
+      var selectedIds = [];
+      $('#materialTable tbody input.row-checkbox:checked').each(function() {
+          selectedIds.push($(this).val());
+      });
+
+      if (selectedIds.length === 0) {
+          $('#alertModal').modal('show');
+          return;
+      }
+
+      // 清空之前的提示信息
+      $('#modal-msg').text('').css('color', '');
+      // 显示模态框
+      $('#inboundModal').modal('show');
+  });
+
+  // 点击模态框中的确定按钮
+  $('#btn-confirm-inbound').click(function() {
+      var warehouseCode = $('#warehouseSelect').val();
+      var selectedIds = [];
+      $('#materialTable tbody input.row-checkbox:checked').each(function() {
+          selectedIds.push($(this).val());
+      });
+
+      if (!warehouseCode) {
+          $('#modal-msg').text('请选择仓库').css('color', 'red');
+          return;
+      }
+
+      // 锁定界面防止重复点击
+      var $btn = $(this);
+      $btn.prop('disabled', true);
+
+      $.ajax({
+          url: "{{ url_for('storage.process_receipt') }}",
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+              receipt_ids: selectedIds,
+              warehouse_code: warehouseCode
+          }),
+          success: function(res) {
+              if (res.code === 200) {
+                  // 成功提示
+                  $('#modal-msg').text(res.msg).css('color', 'green');
+                  
+                  // 半秒后隐藏弹窗并刷新
+                  setTimeout(function() {
+                      $('#modal-msg').text(''); // 隐藏文字
+                      $('#inboundModal').modal('hide'); // 隐藏弹窗
+                      // 等待弹窗完全消失动画结束后刷新 (Bootstrap modal fade usually takes 0.15s-0.3s)
+                      setTimeout(function(){
+                          window.location.reload();
+                      }, 300);
+                  }, 500);
+              } else {
+                  // 失败提示 (例如：存在已接收的数据)
+                  $('#modal-msg').text(res.msg).css('color', 'red');
+                  
+                  // 半秒后隐藏弹窗并刷新
+                  setTimeout(function() {
+                      $('#modal-msg').text('');
+                      $('#inboundModal').modal('hide');
+                      setTimeout(function(){
+                          window.location.reload();
+                      }, 300);
+                  }, 500);
+              }
+          },
+          error: function(xhr, status, error) {
+              $('#modal-msg').text('请求失败，请稍后重试').css('color', 'red');
+          },
+          complete: function() {
+              $btn.prop('disabled', false);
+          }
+      });
+  });
+
+  var table = $table.dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aoColumnDefs": [
+      { "bSortable": false, "aTargets": [ 0 ] }
+    ],
+    "aaSorting": [[ 5, "desc" ]],
+    "oLanguage": {
+      "sLengthMenu": "展示 _MENU_ 页",
+      "sZeroRecords": "没有找到匹配的记录",
+      "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+      "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+      "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+      "sSearch": "搜索：",
+      "oPaginate": {
+        "sFirst": "首页",
+        "sPrevious": "上一页",
+        "sNext": "下一页",
+        "sLast": "尾页"
+      }
+    },
+    "fnDrawCallback": function() {
+      applyDtUniform();
+
+      var $all = $('#title-table-checkbox');
+      $all.prop('checked', false);
+      if ($.uniform) $.uniform.update($all);
+    },
+    "fnInitComplete": function() {
+      $('.dataTables_length select').select2({ minimumResultsForSearch: -1 });
+    }
+  });
+
+  applyDtUniform();
+
+  $(document).on('change', '#title-table-checkbox', function() {
+    var checked = this.checked;
+    var $pageRows = $table.find('tbody tr:visible');
+    var $cbs = $pageRows.find('input.row-checkbox[data-uniform-scope="dt"]');
+
+    $cbs.prop('checked', checked);
+    if ($.uniform) $.uniform.update($cbs);
+  });
+});
+</script>
+{% endblock %}

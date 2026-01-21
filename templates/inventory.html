@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}库存现有量{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home') }}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('storage.inventory') }}" class="current">库存现有量</a> </div>
+    <h1>库存现有量</h1>
+</div>
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>库存现有量</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered data-table">
+                        <thead>
+                            <tr>
+                                <th>物料编码</th>
+                                <th>物料描述</th>
+                                <th>规格型号</th>
+                                <th>存放数量</th>
+                                <th>存放仓库</th>
+                                <th>仓库名称</th>
+                                <th>更新时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventorie_item %}
+                            <tr class="gradeX">
+                                <td>{{item.materialcode}}</td>
+                                <td>{{item.gmaterial.materialdesc}}</td>
+                                <td>{{item.gmaterial.specification}}</td>
+                                <td class="center">{{item.quantity}}</td>
+                                <td>{{item.warehousecode}}</td>
+                                <td>{{item.gwarehouse.warehousename}}</td>
+                                <td>{{item.altertime}}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+{% endblock %}
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+{% endblock %}
