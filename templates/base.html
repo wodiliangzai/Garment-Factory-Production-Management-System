@@ -51,28 +51,34 @@
 </div>
 <!--close-top-Header-menu-->
 <!--start-top-serch-->
-<div id="search">
+<!-- <div id="search">
   <input type="text" placeholder="Search here..."/>
   <button type="submit" class="tip-bottom" title="Search"><i class="icon-search icon-white"></i></button>
-</div>
+</div> -->
 <!--close-top-serch-->
 <!--sidebar-menu-->
 <div id="sidebar"><a href="#" class="visible-phone"><i class="icon icon-home"></i> Dashboard</a>
   <ul>
+    {% if session['charactercode'] == 'GAdmin' %}
     <li class="submenu"> <a href="#"><i class="icon-user"></i> <span>人员管理</span> <span class="label label-important">3</span></a>
       <ul>
         <li><a href="/user/usermanage"><i class="icon-user-md"></i> 用户管理</a></li>
         <li><a href="/user/character"><i class="icon-group"></i> 角色管理</a></li>
-        <li><a href="#"><i class="icon-key"></i> 权限管理</a></li>
+        <li><a href="/user/permission"><i class="icon-key"></i> 权限管理</a></li>
       </ul>
     </li>
+    {% endif %}
+    {% if session['charactercode'] == 'GAdmin' or session['charactercode'] == 'GPurchaser' %}
     <li class="submenu"> <a href="#"><i class="icon-ok"></i> <span>采购管理</span> <span class="label label-important">3</span></a>
       <ul>
         <li><a href="/procurement/prmanage"><i class="icon-ok-circle"></i> 采购申请</a></li>
+        {% if session['charactercode'] == 'GAdmin' or session['keycode'] == 1 %}
         <li><a href="/procurement/preview"><i class="icon-check"></i> 采购申请审核</a></li>
+        {% endif %}
         <li><a href="/procurement/pomanage"><i class="icon-ok-sign"></i> 采购订单</a></li>
       </ul>
     </li>
+    {% endif %}
     <li class="submenu"> <a href="#"><i class="icon-th-large"></i> <span>仓库管理</span> <span class="label label-important">3</span></a>
       <ul>
         <li><a href="/storage/warehouses"><i class="icon-th"></i> 仓库信息</a></li>
@@ -80,19 +86,24 @@
         <li><a href="/storage/inventory"><i class="icon-inbox"></i> 库存现有量</a></li>
       </ul>
     </li>
-    <li><a href="/procurement/suppliermanage"><i class="icon-shopping-cart"></i> <span>供应商管理</span></a></li>
-    <li class="submenu"> <a href="#"><i class="icon-list-alt"></i> <span>物料管理</span> <span class="label label-important">3</span></a>
+    <li class="submenu"> <a href="#"><i class="icon-list-alt"></i> <span>基础数据</span> <span class="label label-important">3</span></a>
       <ul>
-        <li><a href="#"><i class="icon-th-list"></i> 物料分类</a></li>
-        <li><a href="#"><i class="icon-list-ol"></i> 物料单位</a></li>
+        <li><a href="/procurement/suppliermanage"><i class="icon-shopping-cart"></i> 供应商管理</a></li>
+        <li><a href="/storage/sequence"><i class="icon-list-ol"></i> 工序信息</a></li>
         <li><a href="/product/materialmanage"><i class="icon-list"></i> 物料信息</a></li>
       </ul>
     </li>
-    <li><a href="#"><i class="icon-edit"></i> <span>客单管理</span></a></li>
-    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产任务</span> <span class="label label-important">2</span></a>
+    {% if session['charactercode'] == 'GAdmin' %}
+    <li><a href="/customer/somanage"><i class="icon-edit"></i> <span>客单管理</span></a></li>
+    {% endif %}
+    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产任务</span> <span class="label label-important">4</span></a>
       <ul>
         <li><a href="/product/processmanage"><i class="icon-sitemap"></i> 生产工艺</a></li>
-        <li><a href="#"><i class="icon-volume-up"></i> 下发任务</a></li>
+        {% if session['charactercode'] == 'GAdmin' %}
+        <li><a href="/product/taskmanage"><i class="icon-tasks"></i> 任务列表</a></li>
+        <li><a href="/product/taskadd"><i class="icon-cogs"></i> 创建任务</a></li>
+        {% endif %}
+        <li><a href="#"><i class="icon-volume-up"></i> 生产进度</a></li>
       </ul>
     </li>
   </ul>

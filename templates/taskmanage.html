@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+
+{% block title %}生产任务列表{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<style>
+  .dataTables_paginate {
+      position: relative;
+      top: -20px;
+  }
+  #modal-release-task { overflow: visible; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">生产任务列表</a> </div>
+    <h1>生产任务列表</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-hand-right"></i> </span>
+                    <h5>下达任务</h5>
+                </div>
+                <div class="widget-content"> 
+                    <button id="btn-release-task" class="btn btn-success">下达</button> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                </div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>生产任务列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table id="task-table" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>任务编码</th>
+                                <th>任务名称</th>
+                                <th>生产物料</th>
+                                <th>物料描述</th>
+                                <th>规格型号</th>
+                                <th>生产数量</th>
+                                <th>任务状态</th>
+                                <th>预计完成日期</th>
+                                <th>任务信息</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task-list-body">
+                            {% for task in tasks %}
+                            <tr data-taskid="{{task.taskid}}">
+                                <td>{{task.taskcode}}</td>
+                                <td>{{task.taskname}}</td>
+                                <td>{{task.materialcode}}</td>
+                                <td>{{task.gmaterial.materialdesc}}</td>
+                                <td>{{task.gmaterial.specification}}</td>
+                                <td>{{task.quantity}}</td>
+                                <td>{{task.taskstatus}}</td>
+                                <td>{{task.finishtime.strftime('%Y-%m-%d')}}</td>
+                                <td>
+                                    <span> <a href="{{ url_for('product.taskinfo', task_code=task.taskcode) }}" class="btn btn-info btn-mini">详情</a> </span>
+                                    <span> <button type="button" class="btn btn-primary btn-mini btn-view-items">产项</button> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+<div id="modal-release-task" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">下达任务</h3>
+    </div>
+    <div class="modal-body">
+        <form class="form-horizontal">
+            <div class="control-group">
+                <label class="control-label">选择任务：</label>
+                <div class="controls">
+                <select multiple id="select-release-tasks" style="width: 80%;">
+
+                </select>
+                </div>
+            </div>
+        </form>
+        <div class="alert alert-info">注：仅列出当前表格中状态为“新建”的任务。</div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">关闭</button>
+        <button class="btn btn-primary" id="btn-confirm-release">确定下达</button>
+    </div>
+</div>
+<div id="modal-task-items" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="itemModalLabel" aria-hidden="true" style="width: 1000px; margin-left: -500px;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="itemModalLabel">生产项详情</h3>
+    </div>
+    <div class="modal-body">
+        <input type="hidden" id="current-task-id">
+        <table class="table table-bordered table-striped" id="pitem-table">
+            <thead>
+                <tr>
+                    <th>生产物料</th>
+                    <th>物料描述</th>
+                    <th>规格型号</th>
+                    <th>所属工序</th>
+                    <th style="width: 15%;">需产数量</th>
+                    <th style="width: 20%;">操作</th>
+                </tr>
+            </thead>
+            <tbody id="pitem-table-body">
+                <!-- AJAX 加载数据 -->
+            </tbody>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">关闭</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+      
+      // 核心函数：合并当前可见行的单元格
+      function mergeVisibleRows() {
+          var $table = $("#task-table");
+          var $body = $table.find("tbody");
+          var $rows = $body.find("tr"); 
+
+          // 步骤 0: 还原所有单元格状态
+          // 确保每次重绘（包括搜索、翻页时）都是基于原始状态计算
+          $rows.each(function() {
+              var $row = $(this);
+              $row.find("td:hidden").show();
+              $row.find("td[rowspan]").attr("rowspan", 1);
+          });
+          
+          if ($rows.length === 0) return;
+
+          // 需要合并的列索引 (0:任务编码, 1:任务名称, 6:任务状态, 7:日期, 8:详情)
+          var mergeIndices = [0, 1, 6, 7]; 
+          
+          // 执行列扫描合并
+          $.each(mergeIndices, function(i, colIndex) {
+              var lastCell = null;
+              var lastText = null;
+              var rowspan = 1;
+
+              // 辅助变量：记录当前列正在处理哪一个任务编码
+              // 解决 Bug：防止不同任务编码但恰好同名同日期的行被错误合并
+              var lastCodeInColumn = ""; 
+
+              $rows.each(function(rowIndex) {
+                  var $row = $(this);
+                  if ($row.hasClass("dataTables_empty")) return;
+
+                  var currentCode = $row.find("td").eq(0).text().trim();
+                  var $currentCell = $row.find("td").eq(colIndex);
+                  var currentText = $currentCell.text().trim();
+                  
+                  // 判断是否合并：
+                  // 1. 不是第一行
+                  // 2. 只有在同一任务编码内 (currentCode === lastCodeInColumn)
+                  // 3. 且当前列文本内容相同 (currentText === lastText)
+                  if (rowIndex > 0 && currentCode === lastCodeInColumn && currentText === lastText) {
+                       rowspan++;
+                       $currentCell.hide(); 
+                       if (lastCell) {
+                           $(lastCell).attr("rowspan", rowspan);
+                       }
+                  } else {
+                      // 新的一组，重置
+                      lastCell = $currentCell;
+                      lastText = currentText;
+                      lastCodeInColumn = currentCode;
+                      rowspan = 1;
+                      
+                      $currentCell.css({
+                          "vertical-align": "middle",
+                          "background-color": "#fff"
+                      });
+                  }
+              });
+          });
+      }
+      
+      // 辅助变量，用于列扫描时记录上一行的任务编码
+      // var lastCodeForCheck = ""; // (这个变量逻辑已移入上方 mergeVisibleRows 内的 lastCodeInColumn，更安全)
+
+      // 初始化 DataTables
+      var oTable = $('#task-table').dataTable({
+          "bJQueryUI": true,
+          "sPaginationType": "full_numbers",
+          
+          // 修改点：恢复 Header(H) 和 Footer(F) 的包装器
+          // 这样可以让搜索栏和分页栏拥有正确的背景色和对齐方式
+          "sDom": '<"H"lfr>t<"F"ip>', 
+          
+          "aaSorting": [], // 禁用默认排序
+          
+          // 界面汉化
+          "oLanguage": {
+              "sLengthMenu": "展示 _MENU_ /页",
+              "sZeroRecords": "没有找到匹配的记录",
+              // ...existing code...
+              "sInfo": "当前显示 _START_ 到 _END_ 条，共 _TOTAL_ 条",
+              "sInfoEmpty": "显示 0 到 0 条",
+              "sInfoFiltered": "(从 _MAX_ 条记录中过滤)",
+              "sSearch": "搜索任务：",
+              "oPaginate": {
+                  "sFirst": "首页",
+                  "sPrevious": "上一页",
+                  "sNext": "下一页",
+                  "sLast": "末页"
+              }
+          },
+          
+          // 每次重绘后执行合并
+          "fnDrawCallback": function( oSettings ) {
+              mergeVisibleRows();
+          }
+      });
+      
+      $('select').not('#select-release-tasks').select2(); // 排除我们的新控件，稍后单独初始化
+
+      // --- 新增：下达任务逻辑 ---
+      
+      $("#modal-release-task").on('shown', function() {
+            var $select = $("#select-release-tasks");
+            
+            // 如果已初始化，先销毁
+            if ($select.data('select2')) {
+                $select.select2("destroy");
+            }
+            
+            // 初始化 Select2
+            $select.select2({
+                placeholder: "请选择要下达的任务",
+                width: '80%' 
+            });
+
+            // 核心修复：重写 body 方法解决层级问题
+            var s2Instance = $select.data('select2');
+            if (s2Instance) {
+                s2Instance.body = function() {
+                    return $('#modal-release-task');
+                };
+            }
+      });
+      
+      // 2. 点击按钮的逻辑
+      $("#btn-release-task").click(function(e) {
+          e.preventDefault();
+          
+          var uniqueTasks = {}; 
+          var hasNewTask = false;
+          var allData = oTable.fnGetData();
+
+          // 遍历筛选
+          for (var i = 0; i < allData.length; i++) {
+              var rowData = allData[i];
+              var code = rowData[0];
+              var name = rowData[1];
+              var status = rowData[6];
+              
+              if (status.indexOf("新建") !== -1) {
+                  if (!uniqueTasks[code]) {
+                      uniqueTasks[code] = name;
+                      hasNewTask = true;
+                  }
+              }
+          }
+
+          // 填充下拉框
+          var $select = $("#select-release-tasks");
+          $select.empty(); 
+
+          if (hasNewTask) {
+              $.each(uniqueTasks, function(code, name) {
+                  var displayText = code + " - " + name;
+                  $select.append('<option value="' + code + '">' + displayText + '</option>');
+              });
+          } else {
+              $select.append('<option disabled>没有查找到“新建”状态的任务</option>');
+          }
+
+          // 【关键修复】这里必须调用 show 方法，模态框才会出来
+          $("#modal-release-task").modal('show');
+      });
+
+      // 只是演示点击确定
+      $("#btn-confirm-release").click(function() {
+          var selectedCodes = $("#select-release-tasks").val();
+          if (!selectedCodes || selectedCodes.length === 0) {
+              alert("请至少选择一个任务！");
+              return;
+          }
+          alert("即将下达以下任务编码：" + selectedCodes.join(", "));
+          $("#modal-release-task").modal('hide');
+      });
+
+      $(document).on("click", ".btn-view-items", function(e) {
+          e.preventDefault();
+          var $tr = $(this).closest("tr");
+          
+          // 【核心修复】将 .data("taskid") 改为 .attr("data-taskid")
+          // .data() 会自动将长数字字符串转为丢失精度的 Number
+          // .attr() 保证按原始字符串读取
+          var taskId = $tr.attr("data-taskid"); 
+          
+          $("#current-task-id").val(taskId); // 暂存 taskid
+
+          // 加载数据
+          loadTaskItems(taskId);
+      });
+
+      // 加载生产项数据函数
+      function loadTaskItems(taskId) {
+          var $tbody = $("#pitem-table-body");
+          $tbody.html('<tr><td colspan="6" style="text-align:center;">加载中...</td></tr>');
+          
+          $.ajax({
+              url: "/product/get_task_items/" + taskId,
+              type: "GET",
+              success: function(res) {
+                  $tbody.empty();
+                  if (res.code === 200 && res.data.length > 0) {
+                      $.each(res.data, function(i, item) {
+                          var tr = `
+                            <tr data-itemid="${item.itemid}">
+                                <td class="item-code">${item.materialcode}</td>
+                                <td class="item-desc">${item.materialdesc}</td>
+                                <td class="item-spec">${item.specification}</td>
+                                <td class="item-seq">${item.sequencename}</td>
+                                <td class="item-qty" style="text-align:right;">${item.quantity}</td>
+                                <td style="text-align:center;">
+                                    <button class="btn btn-primary btn-mini btn-item-edit"><i class="icon-pencil"></i> 编辑</button>
+                                    <button class="btn btn-danger btn-mini btn-item-delete"><i class="icon-trash"></i> 删除</button>
+                                </td>
+                            </tr>
+                          `;
+                          $tbody.append(tr);
+                      });
+                  } else {
+                      $tbody.html('<tr><td colspan="6" style="text-align:center;">暂无生产项数据</td></tr>');
+                  }
+                  // 显示模态框
+                  $("#modal-task-items").modal("show");
+              },
+              error: function() {
+                  $tbody.html('<tr><td colspan="6" style="text-align:center;color:red;">加载失败</td></tr>');
+                  $("#modal-task-items").modal("show");
+              }
+          });
+      }
+
+      // 全局变量用于编辑状态
+      var $currentEditItemRow = null;
+      var originalItemHtml = "";
+
+      // 2. 点击行内编辑
+      $(document).on("click", ".btn-item-edit", function() {
+          var $row = $(this).closest("tr");
+          
+          // 互斥逻辑：如果有其他行在编辑，先取消
+          if ($currentEditItemRow && $currentEditItemRow[0] !== $row[0]) {
+              $currentEditItemRow.html(originalItemHtml);
+          }
+
+          $currentEditItemRow = $row;
+          originalItemHtml = $row.html();
+
+          var curQty = $row.find(".item-qty").text().trim();
+          
+          // 变为输入框
+          var qtyHtml = `<input type="number" class="input-item-qty" value="${curQty}" style="width: 80%;" min="0.0001">`;
+          var btnHtml = `
+              <button class="btn btn-success btn-mini btn-item-save"><i class="icon-ok"></i> 保存</button>
+              <button class="btn btn-warning btn-mini btn-item-cancel"><i class="icon-remove"></i> 取消</button>
+          `;
+
+          $row.find(".item-qty").html(qtyHtml);
+          $row.find("td:last-child").html(btnHtml); // 操作列
+      });
+
+      // 3. 点击取消
+      $(document).on("click", ".btn-item-cancel", function() {
+          if ($currentEditItemRow) {
+              $currentEditItemRow.html(originalItemHtml);
+              $currentEditItemRow = null;
+              originalItemHtml = "";
+          }
+      });
+
+      // 4. 点击保存 (AJAX)
+      $(document).on("click", ".btn-item-save", function() {
+          var $row = $(this).closest("tr");
+          var itemId = $row.attr("data-itemid");
+          var $input = $row.find(".input-item-qty");
+          var newQty = $input.val();
+          
+          $input.css("border", "");
+          
+          if (!newQty || parseFloat(newQty) <= 0) {
+              $input.css("border", "1px solid red");
+              return;
+          }
+
+          $.ajax({
+              url: "{{ url_for('product.update_task_item') }}",
+              type: "POST",
+              contentType: "application/json",
+              data: JSON.stringify({ itemid: itemId, quantity: newQty }),
+              success: function(res) {
+                  if (res.code === 200) {
+                      // 更新 UI
+                      $row.find(".item-qty").text(newQty);
+                      // 恢复按钮
+                      var btnHtml = `
+                          <button class="btn btn-primary btn-mini btn-item-edit"><i class="icon-pencil"></i> 编辑</button>
+                          <button class="btn btn-danger btn-mini btn-item-delete"><i class="icon-trash"></i> 删除</button>
+                      `;
+                      $row.find("td:last-child").html(btnHtml);
+                      
+                      $currentEditItemRow = null;
+                      originalItemHtml = "";
+                  } else {
+                      alert("更新失败: " + res.msg);
+                  }
+              },
+              error: function() { alert("系统错误"); }
+          });
+      });
+
+      // 5. 点击删除 (AJAX)
+      $(document).on("click", ".btn-item-delete", function() {
+          if(!confirm("确定要删除该生产项吗？")) return;
+
+          var $row = $(this).closest("tr");
+          var itemId = $row.attr("data-itemid");
+
+          $.ajax({
+              url: "{{ url_for('product.delete_task_item') }}",
+              type: "POST",
+              contentType: "application/json",
+              data: JSON.stringify({ itemid: itemId }),
+              success: function(res) {
+                  if (res.code === 200) {
+                      $row.remove();
+                      if ($("#pitem-table-body tr").length === 0) {
+                          $("#pitem-table-body").html('<tr><td colspan="6" style="text-align:center;">暂无生产项数据</td></tr>');
+                      }
+                  } else {
+                      alert("删除失败: " + res.msg);
+                  }
+              },
+              error: function() { alert("系统错误"); }
+          });
+      });
+      
+      // 监听模态框关闭事件：重置模态框内容（数据清理）
+      $("#modal-task-items").on('hidden', function() {
+          $("#pitem-table-body").empty();
+          $currentEditItemRow = null;
+          originalItemHtml = "";
+      });
+  });
+</script>
+{% endblock %}

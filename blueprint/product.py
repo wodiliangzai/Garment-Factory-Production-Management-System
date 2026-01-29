@@ -2,9 +2,10 @@ from flask import Blueprint,render_template,jsonify,redirect,url_for,session,req
 from datetime import datetime
 import string
 from exts import db
-from models import MaterialModel,CraftModel,FormulaModel,CharacterModel,WarehouseModel
-from forms import AddmaterialForm,AltermaterialForm,CraftForm,AddcraftForm
+from models import MaterialModel,CraftModel,FormulaModel,CharacterModel,WarehouseModel,SequenceModel,TOPModel, PItemModel
+from forms import AddmaterialForm,AltermaterialForm,CraftForm,AddcraftForm,AddtaskForm,AltertaskForm
 from snowflake import SnowflakeGenerator
+from decorators import login_required,admin_required
 
 # 初始化雪花算法生成器 (ID=1，避免与采购模块冲突)
 gen = SnowflakeGenerator(1)
@@ -87,8 +88,48 @@ def check_circular_dependency(target_child, target_parent, visited=None):
             
     return False
 
+def create_pitem_recursive(task_id, material_code, required_qty):
+    """
+    递归查找工艺和配方，生成任务生产项
+    task_id: 所属任务单编号
+    material_code: 当前需要生产的物料
+    required_qty: 需产数量
+    """
+    # 1. 查找是否存在生产工艺
+    craft = CraftModel.query.filter_by(materialcode=material_code).first()
+    
+    # 如果该物料没有工艺，说明它是原材料（采购件），不需要建立生产项，直接返回（根据需求）
+    if not craft:
+        return
+
+    # 2. 生成生产项 (雪花算法)
+    pitem_id = str(next(gen))
+    
+    new_pitem = PItemModel(
+        itemid=pitem_id,
+        taskid=task_id,
+        materialcode=material_code,
+        sequenceid=craft.sequenceid, # 从工艺中获取
+        quantity=required_qty,
+        craftid=craft.craftid,
+        completed=0
+    )
+    db.session.add(new_pitem)
+
+    # 3. 查找该工艺的配方（子件）
+    formulas = FormulaModel.query.filter_by(craftid=craft.craftid).all()
+    
+    if formulas:
+        for formula in formulas:
+            # 计算子件的需求数量 = 父件数量 * 用量
+            child_qty = float(required_qty) * float(formula.usage)
+            
+            # 递归调用：继续为子件查找工艺并生成生产项
+            create_pitem_recursive(task_id, formula.component, child_qty)
+
 
 @product_bp.route('/materialmanage')
+@login_required
 def materialmanage():
     materials = MaterialModel.query.all()
     addmaterialform=AddmaterialForm()
@@ -96,6 +137,8 @@ def materialmanage():
     return render_template('materialmanage.html',materials=materials,addmaterialform=addmaterialform,altermaterialform=altermaterialform)
 
 @product_bp.post('/addmaterial')
+@login_required
+@admin_required
 def addmaterial():
     addmaterialform=AddmaterialForm()
     if addmaterialform.validate():
@@ -127,6 +170,8 @@ def addmaterial():
         return redirect(url_for('product.materialmanage'))
     
 @product_bp.post('/altermaterial/<string:role_code>')
+@login_required
+@admin_required
 def altermaterial(role_code):
     altermaterialform=AltermaterialForm()
     if altermaterialform.validate():
@@ -150,20 +195,23 @@ def altermaterial(role_code):
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
     
 @product_bp.route('/processmanage')
+@login_required
 def processmanage():
     addcraftform=AddcraftForm()
     addcraftform.materialcode.choices =[('', '请选择物料编码')] + [(m.materialcode, f"{m.materialcode} - {m.materialdesc} - {m.specification}") for m in MaterialModel.query.all()]
-    addcraftform.department.choices =[('', '请选择负责部门')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    addcraftform.sequence.choices =[('', '请选择所属工序')] + [(s.sequenceid, s.sequencename) for s in SequenceModel.query.all()]
     addcraftform.warehouse.choices =[('', '请选择完成存放仓库')] + [(w.warehousecode, w.warehousename) for w in WarehouseModel.query.all()]
     crafts = CraftModel.query.all()
     return render_template('processmanage.html',crafts=crafts, addcraftform=addcraftform)
 
 @product_bp.post('/addcraft')
+@login_required
+@admin_required
 def addcraft():
     addcraftform=AddcraftForm()
     # 关键：必须重新填充 SelectField 的 choices，否则 WTForms 会因为提交的值不在 choices 列表中而校验失败
     addcraftform.materialcode.choices =[('', '请选择物料编码')] + [(m.materialcode, f"{m.materialcode} - {m.materialdesc} - {m.specification}") for m in MaterialModel.query.all()]
-    addcraftform.department.choices =[('', '请选择负责部门')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    addcraftform.sequence.choices =[('', '请选择所属工序')] + [(s.sequenceid, s.sequencename) for s in SequenceModel.query.all()]
     addcraftform.warehouse.choices =[('', '请选择完成存放仓库')] + [(w.warehousecode, w.warehousename) for w in WarehouseModel.query.all()]
 
     if addcraftform.validate_on_submit():
@@ -180,7 +228,7 @@ def addcraft():
             new_craft = CraftModel(
                 craftid=new_craft_id,
                 materialcode=addcraftform.materialcode.data,
-                department=addcraftform.department.data,
+                sequenceid=addcraftform.sequence.data,
                 storage=addcraftform.warehouse.data,
                 usagestatus='未使用',  # 设置默认为未使用
                 creationtime=datetime.now(),
@@ -213,6 +261,7 @@ def addcraft():
         return redirect(url_for('product.processmanage'))
 
 @product_bp.route('/processinfo/<string:craft_id>')
+@login_required
 def processinfo(craft_id):
     craftform=CraftForm()
     craft = CraftModel.query.filter_by(craftid=craft_id).first()
@@ -223,9 +272,9 @@ def processinfo(craft_id):
                     window.history.back();
                 </script>
             """)
-    craftform.department.choices = [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    craftform.sequence.choices = [(s.sequenceid, s.sequencename) for s in SequenceModel.query.all()]
     craftform.warehouse.choices = [(w.warehousecode, w.warehousename) for w in WarehouseModel.query.all()]
-    craftform.department.default = craft.department
+    craftform.sequence.default = craft.sequenceid
     craftform.warehouse.default = craft.storage
     craftform.process()
     craftform.role_code.data = craft.materialcode
@@ -249,17 +298,19 @@ def processinfo(craft_id):
     return render_template('processinfo.html', craft_id=craft_id, craftform=craftform, recipe_tree=recipe_tree,materials_json=materials_json)
 
 @product_bp.route('/updatecraft/<string:craft_id>', methods=['POST'])
+@login_required
+@admin_required
 def updatecraft(craft_id):
     craftform = CraftForm()
     # 必须重新填充 SelectField 的 choices，否则验证会失败
-    craftform.department.choices = [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    craftform.sequence.choices = [(s.sequenceid, s.sequencename) for s in SequenceModel.query.all()]
     craftform.warehouse.choices = [(w.warehousecode, w.warehousename) for w in WarehouseModel.query.all()]
     
     if craftform.validate_on_submit():
         craft = CraftModel.query.filter_by(craftid=craft_id).first()
         if craft:
             # 更新字段
-            craft.department = craftform.department.data
+            craft.sequenceid = craftform.sequence.data
             craft.storage = craftform.warehouse.data
             craft.alteruser = session.get('username')
             craft.altertime = datetime.now()
@@ -284,6 +335,8 @@ def updatecraft(craft_id):
     return redirect(url_for('product.processinfo', craft_id=craft_id))
 
 @product_bp.route('/deletecraft/<string:craft_id>')
+@login_required
+@admin_required
 def deletecraft(craft_id):
     craft = CraftModel.query.filter_by(craftid=craft_id).first()
     if craft:
@@ -306,6 +359,8 @@ def deletecraft(craft_id):
     return redirect(url_for('product.processmanage'))
 
 @product_bp.post('/formula_update')
+@login_required
+@admin_required
 def formula_update():
     try:
         data = request.get_json()
@@ -379,6 +434,8 @@ def formula_update():
 
 # 删除配方行
 @product_bp.post('/formula_delete')
+@login_required
+@admin_required
 def formula_delete():
     try:
         data = request.get_json()
@@ -398,3 +455,343 @@ def formula_delete():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
+    
+@product_bp.route('/taskadd')
+@login_required
+@admin_required
+def taskadd():
+    form=AddtaskForm()
+    materials = MaterialModel.query.filter_by(materialtype='成品').all()
+    materials_json = json.dumps([
+        {
+            'code': material.materialcode,
+            'desc': material.materialdesc,
+            'spec': material.specification
+        }
+        for material in materials
+    ], ensure_ascii=False)
+    return render_template('taskadd.html',form=form,materials_json=materials_json)
+
+@product_bp.post('/addtask')
+@login_required
+@admin_required
+def addtask():
+    form = AddtaskForm()
+
+    if form.validate_on_submit():
+        if TOPModel.query.filter_by(taskcode=form.required.data).first():
+            flash(f"创建失败：任务编码【{form.required.data}】已存在，请更换编码后重试。", "error")
+            return redirect(url_for('product.taskadd'))
+
+        try:
+            # 1. 获取基础数据
+            task_code_prefix = form.required.data
+            task_name = form.realname.data
+            endtime_str = form.endtime.data # mm/dd/yyyy
+            
+            # 转换时间格式
+            try:
+                finish_time = datetime.strptime(endtime_str, '%m/%d/%Y')
+            except ValueError:
+                flash("日期格式错误，请使用 mm/dd/yyyy", "error")
+                return redirect(url_for('product.taskadd'))
+
+            # 2. 获取表格数据 (JSON)
+            items_json = form.items_json.data
+            if not items_json:
+                flash("未检测到生产项数据", "error")
+                return redirect(url_for('product.taskadd'))
+            
+            items_list = json.loads(items_json)
+            if not items_list:
+                flash("生产项列表为空", "error")
+                return redirect(url_for('product.taskadd'))
+
+            current_user = session.get('username')
+            now_time = datetime.now()
+
+            # 3. 遍历每一条成品数据，开始创建任务
+            for item in items_list:
+                material_code = item.get('code')
+                qty = float(item.get('qty'))
+
+                check_craft = CraftModel.query.filter_by(materialcode=material_code).first()
+                if not check_craft:
+                    raise Exception(f"成品【{material_code}】尚未维护生产工艺数据，无法创建任务！")
+
+                task_id = str(next(gen)) # 雪花算法
+                
+                new_task = TOPModel(
+                    taskid=task_id,
+                    taskcode=task_code_prefix, # 所属任务编码
+                    taskname=task_name,        # 任务名称
+                    materialcode=material_code,# 界面表格项的编码
+                    quantity=qty,              # 界面表格项的数量
+                    taskstatus='新建',
+                    starttime=None,
+                    finishtime=finish_time,
+                    issuer=None,
+                    creationtime=now_time,
+                    creater=current_user,
+                    altertime=now_time,
+                    alteruser=current_user
+                )
+                db.session.add(new_task)
+
+                create_pitem_recursive(task_id, material_code, qty)
+
+            db.session.commit()
+            flash(f"成产任务创建成功！共生成 {len(items_list)} 个任务单。", "success")
+            return redirect(url_for('product.taskinfo', task_code=task_code_prefix))
+
+        except Exception as e:
+            # 5. 失败回滚
+            db.session.rollback()
+            flash(f"创建失败，系统发生错误：{str(e)}", "error")
+            return redirect(url_for('product.taskadd'))
+
+    else:
+        error_msgs = []
+        for field, errors in form.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        flash("验证失败：" + "; ".join(error_msgs), "error")
+        return redirect(url_for('product.taskadd'))
+    
+@product_bp.route('/taskmanage')
+@login_required
+@admin_required
+def taskmanage():
+    tasks = TOPModel.query.all()
+    return render_template('taskmanage.html',tasks=tasks)
+
+@product_bp.route('/taskinfo/<string:task_code>')
+@login_required
+@admin_required
+def taskinfo(task_code):
+    form=AltertaskForm()
+    task = TOPModel.query.filter_by(taskcode=task_code).first()
+    if not task:
+        return render_template_string("""
+                <script>
+                    alert('该生产任务不存在！');
+                    window.history.back();
+                </script>
+            """)
+    
+    form.required.data = task.taskcode
+    form.realname.data = task.taskname
+    form.endtime.data = task.finishtime.strftime('%m/%d/%Y')
+    
+    materials = MaterialModel.query.filter_by(materialtype='成品').all()
+    materials_json = json.dumps([
+        {
+            'code': material.materialcode,
+            'desc': material.materialdesc,
+            'spec': material.specification
+        }
+        for material in materials
+    ], ensure_ascii=False)
+    initialItems = TOPModel.query.filter_by(taskcode=task_code).all()
+    return render_template('taskinfo.html', task=task,form=form,materials_json=materials_json,initialItems=initialItems)
+
+@product_bp.post('/altertask')
+@login_required
+@admin_required
+def altertask():
+    form = AltertaskForm()
+
+    if form.validate_on_submit():
+        try:
+            # 1. 解包数据
+            task_code = form.required.data
+            task_name = form.realname.data
+            endtime_str = form.endtime.data
+            items_json = form.items_json.data
+            
+            # 日期兼容处理
+            try:
+                finish_time = datetime.strptime(endtime_str, '%m/%d/%Y')
+            except ValueError:
+                finish_time = datetime.strptime(endtime_str, '%Y-%m-%d')
+            
+            items_list = json.loads(items_json) if items_json else []
+
+            if not items_list:
+                flash("生产项不能为空，请使用删除功能。", "error")
+                return redirect(url_for('product.taskinfo', task_code=task_code))
+
+            # 2. 查询现有数据，构建 {taskid: obj} 字典
+            current_tasks = TOPModel.query.filter_by(taskcode=task_code).all()
+            current_task_map = {t.taskid: t for t in current_tasks}
+
+            # 3. 同步表头信息
+            for task in current_tasks:
+                task.taskname = task_name
+                task.finishtime = finish_time
+                task.altertime = datetime.now()
+                task.alteruser = session.get('username')
+
+            submitted_ids = [item.get('taskid') for item in items_list if item.get('taskid')]
+
+            # 4. 【删除逻辑】：前端没传回来的 ID 视为删除
+            for taskid, task_obj in current_task_map.items():
+                if taskid not in submitted_ids:
+                    # 级联删除 GPItem
+                    db.session.delete(task_obj)
+
+            # 5. 【更新与新增逻辑】
+            for item in items_list:
+                item_taskid = item.get('taskid')
+                material_code = item.get('code')
+                qty = float(item.get('qty'))
+                
+                # A. 更新
+                if item_taskid and item_taskid in current_task_map:
+                    existing_task = current_task_map[item_taskid]
+                    
+                    code_changed = existing_task.materialcode != material_code
+                    qty_changed = float(existing_task.quantity) != qty
+
+                    if code_changed or qty_changed:
+                        # 核心修改逻辑：先清除旧 GPItem，再更新 GTOP，最后重新递归生成新的 GPItem
+                        PItemModel.query.filter_by(taskid=item_taskid).delete()
+                        
+                        existing_task.materialcode = material_code
+                        existing_task.quantity = qty
+                        
+                        # 校验工艺是否存在 (如果是改了物料)
+                        if code_changed and not CraftModel.query.filter_by(materialcode=material_code).first():
+                             raise Exception(f"保存失败：物料【{material_code}】未维护生产工艺")
+
+                        create_pitem_recursive(item_taskid, material_code, qty)
+
+                # B. 新增
+                else:
+                    if not CraftModel.query.filter_by(materialcode=material_code).first():
+                        raise Exception(f"保存失败：新增物料【{material_code}】未维护生产工艺")
+                    
+                    new_id = str(next(gen))
+                    new_task = TOPModel(
+                        taskid=new_id,
+                        taskcode=task_code,
+                        taskname=task_name,
+                        materialcode=material_code,
+                        quantity=qty,
+                        taskstatus='新建',
+                        starttime=None,
+                        finishtime=finish_time,
+                        issuer=None,
+                        creationtime=datetime.now(),
+                        creater=session.get('username'),
+                        altertime=datetime.now(),
+                        alteruser=session.get('username')
+                    )
+                    db.session.add(new_task)
+                    create_pitem_recursive(new_id, material_code, qty)
+
+            db.session.commit()
+            flash("保存修改成功！", "success")
+            return redirect(url_for('product.taskinfo', task_code=task_code))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"保存失败: {str(e)}", "error")
+            return redirect(url_for('product.taskinfo', task_code=form.required.data))
+    
+    else:
+        # 表单验证失败 (如日期格式不对)
+        flash(f"验证失败：{form.errors}", "error")
+        return redirect(url_for('product.taskmanage'))
+
+
+@product_bp.route('/deletetask/<string:task_code>')
+@login_required
+@admin_required
+def deletetask(task_code):
+    try:
+        tasks = TOPModel.query.filter_by(taskcode=task_code).all()
+        if not tasks:
+            flash("该任务单不存在或已被删除", "error")
+            return redirect(url_for('product.taskmanage'))
+        
+        count = len(tasks)
+        for task in tasks:
+            db.session.delete(task)
+            
+        db.session.commit()
+        flash(f"已删除任务【{task_code}】（共清除 {count} 条任务单）。", "success")
+        return redirect(url_for('product.taskmanage'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"删除失败: {str(e)}", "error")
+        return redirect(url_for('product.taskinfo', task_code=task_code))
+    
+@product_bp.route('/get_task_items/<string:task_id>')
+@login_required
+@admin_required
+def get_task_items(task_id):
+    """获取指定任务单的所有生产项"""
+    items = PItemModel.query.filter_by(taskid=task_id).all()
+    items_data = []
+    for item in items:
+        # 获取关联信息
+        gmaterial = MaterialModel.query.filter_by(materialcode=item.materialcode).first()
+        gsequence = SequenceModel.query.filter_by(sequenceid=item.sequenceid).first()
+        
+        items_data.append({
+            'itemid': item.itemid,
+            'materialcode': item.materialcode,
+            'materialdesc': gmaterial.materialdesc if gmaterial else '',
+            'specification': gmaterial.specification if gmaterial else '',
+            'sequencename': gsequence.sequencename if gsequence else item.sequenceid,
+            'quantity': float(item.quantity)
+        })
+    return jsonify({'code': 200, 'data': items_data})
+
+@product_bp.post('/update_task_item')
+@login_required
+@admin_required
+def update_task_item():
+    """AJAX 更新生产项数量"""
+    try:
+        data = request.json
+        item_id = data.get('itemid')
+        new_qty = data.get('quantity')
+        
+        if not item_id or new_qty is None:
+             return jsonify({'code': 400, 'msg': '参数缺失'})
+             
+        item = PItemModel.query.filter_by(itemid=item_id).first()
+        if not item:
+            return jsonify({'code': 404, 'msg': '生产项不存在'})
+            
+        item.quantity = float(new_qty)
+        # 这里不需要更新 altertime/alteruser，因为 PItemModel 很简洁，或者由于它是级联子项
+        
+        db.session.commit()
+        return jsonify({'code': 200, 'msg': '更新成功'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'code': 500, 'msg': str(e)})
+
+@product_bp.post('/delete_task_item')
+@login_required
+@admin_required
+def delete_task_item():
+    """AJAX 删除生产项"""
+    try:
+        data = request.json
+        item_id = data.get('itemid')
+        
+        item = PItemModel.query.filter_by(itemid=item_id).first()
+        if not item:
+            return jsonify({'code': 404, 'msg': '生产项不存在'})
+            
+        db.session.delete(item)
+        db.session.commit()
+        return jsonify({'code': 200, 'msg': '删除成功'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'code': 500, 'msg': str(e)})

@@ -2,12 +2,14 @@ from flask import Blueprint,render_template,jsonify,redirect,url_for,session,req
 from datetime import datetime
 import string
 from exts import db
-from models import WarehouseModel,InventoryModel,ReceiptModel
-from forms import AddwarehouseForm,AlterwarehouseForm
+from models import WarehouseModel,InventoryModel,ReceiptModel,SequenceModel,CharacterModel
+from forms import AddwarehouseForm,AlterwarehouseForm,AddsequenceForm,AltersequenceForm
+from decorators import login_required,admin_required
 
 storage_bp=Blueprint('storage',__name__,url_prefix='/storage')
 
 @storage_bp.route('/warehouses')
+@login_required
 def warehouses():
     warehouses = WarehouseModel.query.all()
     addwarehouseform=AddwarehouseForm()
@@ -15,6 +17,8 @@ def warehouses():
     return render_template('warehouse.html',warehouses=warehouses,addwarehouseform=addwarehouseform,alterwarehouseform=alterwarehouseform)
 
 @storage_bp.post('/addwarehouse')
+@login_required
+@admin_required
 def addwarehouse():
     addwarehouseform=AddwarehouseForm()
     if addwarehouseform.validate():
@@ -44,6 +48,8 @@ def addwarehouse():
         return redirect(url_for('storage.warehouses'))
     
 @storage_bp.post('/alterwarehouse/<string:role_code>')
+@login_required
+@admin_required
 def alterwarehouse(role_code):
     alterwarehouseform=AlterwarehouseForm()
     if alterwarehouseform.validate():
@@ -69,17 +75,20 @@ def alterwarehouse(role_code):
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
 
 @storage_bp.route('/inventory')
+@login_required
 def inventory():
     inventorie_item = InventoryModel.query.all()
     return render_template('inventory.html',inventorie_item=inventorie_item)
 
 @storage_bp.route('/receipt')
+@login_required
 def receipt():
     receipt_items = ReceiptModel.query.all()
     warehouses = WarehouseModel.query.all()
     return render_template('receipt.html',receipt_items=receipt_items,warehouses=warehouses)
 
 @storage_bp.post('/process_receipt')
+@login_required
 def process_receipt():
     data = request.get_json()
     receipt_ids = data.get('receipt_ids', [])
@@ -133,3 +142,78 @@ def process_receipt():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
+    
+@storage_bp.route('/sequence')
+@login_required
+def sequence():
+    sequences = SequenceModel.query.all()
+    addsequenceform=AddsequenceForm()
+    addsequenceform.role.choices=[('', '请选择负责角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    altersequenceform=AltersequenceForm()
+    altersequenceform.role.choices=[(c.charactercode, c.charactername) for c in CharacterModel.query.all()] 
+    return render_template('sequence.html',sequences=sequences,addsequenceform=addsequenceform,altersequenceform=altersequenceform)
+
+@storage_bp.post('/addsequence')
+@login_required
+@admin_required
+def addsequence():
+    addsequenceform=AddsequenceForm()
+    addsequenceform.role.choices=[('', '请选择负责角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+
+    if addsequenceform.validate():
+        data = addsequenceform.data
+        if SequenceModel.query.filter_by(sequenceid=data['required']).first():
+            flash("添加失败：工序编码已存在", "error")
+            return redirect(url_for('storage.sequence'))
+        
+        new_sequence = SequenceModel(
+            sequenceid=data['required'],
+            sequencename=data['realname'],
+            charactercode=data['role'], 
+            creationtime=datetime.now(),
+            creater=session.get('username'), 
+            altertime=datetime.now(),
+            alteruser=session.get('username')
+        )
+        db.session.add(new_sequence)
+        db.session.commit()
+        flash("工序添加成功", "success")
+        return redirect(url_for('storage.sequence'))
+    else:
+        error_msgs = []
+        for field, errors in addsequenceform.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        flash("添加失败："+ "; ".join(error_msgs), "error")
+        return redirect(url_for('storage.sequence'))
+
+@storage_bp.post('/altersequence/<string:role_code>')
+@login_required
+@admin_required
+def altersequence(role_code):
+    altersequenceform=AltersequenceForm()
+    altersequenceform.role.choices=[(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+
+    if altersequenceform.validate():
+        data = altersequenceform.data
+        sequence = SequenceModel.query.filter_by(sequenceid=role_code).first()
+        if sequence:
+            sequence.sequencename = data['role_name']
+            sequence.charactercode = data['role'] # 更新角色代码
+            sequence.altertime = datetime.now()
+            sequence.alteruser = session.get('username')
+            
+            try:
+                db.session.commit()
+                return jsonify({'code':200,'msg':'工序修改成功'})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'code':500,'msg':f'数据库错误: {str(e)}'})
+        else:
+            return jsonify({'code':500,'msg':'工序已不存在，修改失败'})
+    else:
+        error_msgs = []
+        for field, errors in altersequenceform.errors.items():
+            for error in errors:
+                error_msgs.append(f"{error}")
+        return jsonify({"code": 400, "msg": "; ".join(error_msgs)})

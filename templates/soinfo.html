@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}客户订单详情{% endblock %}
+
+{% block head %}{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('customer.somanage')}}">客单管理</a> <a href="{{ url_for('customer.soinfo', orderid=soheader.orderid) }}" class="current">客单详情</a> </div>
+    <h1>客户订单详情</h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-briefcase"></i> </span>
+                    <h5 >客户订单</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="row-fluid">
+                        <div class="span6">
+                            <table class="">
+                                <tbody>
+                                <tr>
+                                    <td><h4>责任人姓名：{{ soheader.responsible }}</h4></td>
+                                </tr>
+                                <tr>
+                                    <td>客户姓名：{{ soheader.clientname }}</td>
+                                </tr>
+                                <tr>
+                                    <td>客户单位：{{ soheader.organization }}</td>
+                                </tr>
+                                <tr>
+                                    <td>客户电话: {{ soheader.clientphone }}</td>
+                                </tr>
+                                <tr>
+                                    <td >客户地址：{{ soheader.address }}</td>
+                                </tr>
+                                <tr>
+                                    <td >交付状态：{{ soheader.orderstatus }}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="span6">
+                            <table class="table table-bordered table-invoice">
+                                <tbody>
+                                <tr>
+                                <tr>
+                                    <td class="width30">订单编号:</td>
+                                    <td class="width70"><strong>{{ soheader.orderid }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>下单日期:</td>
+                                    <td><strong>{{ soheader.orderdate }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>要求交货日期:</td>
+                                    <td><strong>{{ soheader.deliverydate }}</strong></td>
+                                </tr>
+                                <td class="width30">订单备注:</td>
+                                <td class="width70">
+                                    {{soheader.remarks}}
+                                </td>
+                                </tr>
+                                </tbody>                                
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row-fluid">
+                        <div class="span12">
+                            <table class="table table-bordered table-invoice-full">
+                                <thead>
+                                    <tr>
+                                        <th class="head0">物料编码</th>
+                                        <th class="head1">物料描述</th>
+                                        <th class="head0">规格型号</th>
+                                        <th class="head0 right">数量</th>
+                                        <th class="head1 right">单价</th>
+                                        <th class="head0 right">合计</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set ns = namespace(total=0) %}
+                                    {% for soline in soheader.solines %}
+                                    <tr>
+                                        <td>{{soline.materialcode}}</td>
+                                        <td>{{soline.gmaterial.materialdesc}}</td>
+                                        <td>{{soline.gmaterial.specification}}</td>
+                                        <td class="right">{{soline.quantity}}</td>
+                                        <td class="right">{{soline.unitprice}}</td>
+                                        <td class="right"><strong>{{soline.quantity * soline.unitprice}}</strong></td>
+                                    </tr>
+                                    {% set ns.total = ns.total + (soline.quantity * soline.unitprice) %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <div class="pull-right">
+                                <h4><span>总计:</span> {{ ns.total }}</h4>
+                                <br>
+                                <a class="btn btn-primary btn-large pull-right" href="{{ url_for('customer.somanage')}}">返回</a> 
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+{% endblock %}

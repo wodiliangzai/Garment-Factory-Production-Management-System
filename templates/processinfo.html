@@ -26,6 +26,7 @@
   {% endif %}
 {% endwith %}
 <div class="container-fluid"><hr>
+    {% if session['charactercode'] == 'GAdmin' %}
     <div class="row-fluid">
         <div class="span12">
             <div class="widget-box">
@@ -35,7 +36,6 @@
                 <div class="widget-content nopadding">
                     <form class="form-horizontal" method="post" action="{{ url_for('product.updatecraft', craft_id=craft_id) }}" name="basic_validate" id="basic_validate" novalidate="novalidate">
                         {{craftform.csrf_token}}
-                        <!-- 第一行：物料编码 & 负责部门 -->
                         <div class="row-fluid">
                             <div class="span6">
                             <div class="control-group">
@@ -47,9 +47,9 @@
                             </div>
                             <div class="span6">
                             <div class="control-group">
-                                <label class="control-label">{{craftform.department.label}}</label>
+                                <label class="control-label">{{craftform.sequence.label}}</label>
                                 <div class="controls">
-                                    {{craftform.department}}
+                                    {{craftform.sequence}}
                                 </div>
                             </div>
                             </div>
@@ -84,13 +84,14 @@
             </div>
         </div>
     </div>
+    {% endif %}
     <div class="row-fluid">
         <div class="span12">
             <div class="widget-box">
                 <div class="widget-title"> <span class="icon"> <i class="icon-list"></i> </span>
                     <h5>工艺配方</h5>
                     <div class="buttons-right">
-                        <a id="btn-add-recipe" class="btn btn-primary btn-mini btn-spacing" href="javascript:void(0);" style="margin-top: 9px; height: 18px;"><i class="icon-plus"></i> 添加配方</a>
+                        {% if session['charactercode'] == 'GAdmin' %} <a id="btn-add-recipe" class="btn btn-primary btn-mini btn-spacing" href="javascript:void(0);" style="margin-top: 9px; height: 18px;"><i class="icon-plus"></i> 添加配方</a> {% endif %}
                         <span id="toggle-all-btn" class="label label-info btn-toggle-tree">全部收缩</span>
                     </div>
                 </div>
@@ -103,28 +104,25 @@
                                 <th style="width: 20%;">物料描述</th>
                                 <th style="width: 20%;">规格型号</th>
                                 <th style="width: 10%;">组件用量</th>
-                                <!-- 新增操作列 -->
+                                {% if session['charactercode'] == 'GAdmin' %}
                                 <th style="width: 10%;">操作</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for node in recipe_tree %}
-                            <!-- 
-                                修改说明：
-                                data-tt-id: 现在是唯一的 formulaid
-                                data-tt-parent-id: 是父级的 formulaid (或顶层物料码)
-                                data-material-code: 新增属性，用于显示原本的物料编码
-                            -->
                             <tr data-tt-id="{{ node.id }}" data-tt-parent-id="{{ node.parent }}" data-formula-id="{{ node.formulaid }}" data-material-code="{{ node.material_code }}">
                                 <!-- 显示时，取 material_code -->
                                 <td class="row-code">{{ node.material_code }}</td>
                                 <td class="row-desc">{{ node.desc }}</td>
                                 <td class="row-spec">{{ node.spec }}</td>
                                 <td class="row-qty">{{ node.qty }}</td>
+                                {% if session['charactercode'] == 'GAdmin' %}
                                 <td>
                                     <a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit">编辑</a>
                                     <a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 2px;">删除</a>
                                 </td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

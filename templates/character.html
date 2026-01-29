@@ -49,9 +49,10 @@
                 <td>{{character.description}}</td>
                 <td class="center">{{character.effectivedate}}</td>
                 <td>
+                  {% if character.fixed!='Y' %}
                   <span> <a href="#" class="btn btn-primary btn-mini">成员</a> </span>
                   <span> <a href="#" class="btn btn-danger btn-mini">编辑</a> </span>
-                  <span> <a href="#" class="btn btn-danger btn-mini">权限</a> </span>
+                  {% endif %}
                 </td>
               </tr>
               {% endfor %}

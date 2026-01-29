@@ -1,5 +1,5 @@
 from flask import Blueprint,render_template,jsonify,redirect,url_for,session,request,render_template_string,flash
-from forms import LoginForm,UpdateuserForm,AdduserForm,ForgotpwdForm,AddcharacterForm,AltercharacterForm
+from forms import LoginForm,UpdateuserForm,AdduserForm,ForgotpwdForm,AddcharacterForm,AltercharacterForm,AddPermissionForm, AlterPermissionForm
 from werkzeug.security import generate_password_hash,check_password_hash #加密与检查密码
 from PIL import Image, ImageDraw, ImageFont
 import random
@@ -8,7 +8,8 @@ from exts import db, mail
 from flask_mail import Message
 from datetime import datetime
 import string
-from models import UserModel,CharacterModel
+from models import UserModel,CharacterModel,PermissionModel
+from decorators import login_required,admin_required
 
 user_bp=Blueprint('user',__name__,url_prefix='/user')
 
@@ -62,6 +63,7 @@ def get_email_captcha():
     return jsonify({"code": 200, "message": "", "data": None})
 
 @user_bp.route('/logout')
+@login_required
 def logout():
     session.clear()
     return redirect(url_for("user.login"))
@@ -80,7 +82,12 @@ def login():
             
             user=UserModel.query.filter_by(username=username).first()
             if user and check_password_hash(user.password,password):
-                session['username']=user.username
+                permission=PermissionModel.query.filter_by(username=username).first()
+                if not permission:
+                    return render_template('login.html', form=loginform, form2=forgotpwdform,error_msgs=["该用户未被分配任何角色，请联系管理员！"])
+                session['username']=permission.username
+                session['charactercode']=permission.charactercode
+                session['keycode']=permission.keycode
                 session.pop('img_captcha', None)  # 删除img_captcha
                 return redirect(url_for('home'))
             else:
@@ -129,6 +136,8 @@ def resetpwd():
     return jsonify({'code':200,'msg':'密码重置成功'})
 
 @user_bp.route('/usermanage')
+@login_required
+@admin_required
 def usermanage():
     updateuserForm=UpdateuserForm()
     adduserForm=AdduserForm()
@@ -136,6 +145,8 @@ def usermanage():
     return render_template('usermanage.html',users=users,updateuserForm=updateuserForm,adduserForm=adduserForm)
 
 @user_bp.post('/updateuser/<string:hide_username>')
+@login_required
+@admin_required
 def updateuser(hide_username):
     updateuserForm=UpdateuserForm()
     if updateuserForm.validate():
@@ -165,6 +176,8 @@ def updateuser(hide_username):
         return redirect(url_for('user.usermanage'))
         
 @user_bp.post('/adduser')
+@login_required
+@admin_required
 def adduser():
     adduserForm=AdduserForm()
     if adduserForm.validate():
@@ -193,6 +206,8 @@ def adduser():
         return redirect(url_for('user.usermanage'))
     
 @user_bp.post('/verification')
+@login_required
+@admin_required
 def userverification():
     username=request.form.get('username')
     password=request.form.get('password')
@@ -202,6 +217,8 @@ def userverification():
     return jsonify({'code':200,'msg':'验证成功'})
 
 @user_bp.post('/updatepwd')
+@login_required
+@admin_required
 def updatepwd():
     username=request.form.get('username')
     password=request.form.get('password')
@@ -213,6 +230,8 @@ def updatepwd():
     return jsonify({'code':200,'msg':'密码修改成功'})
 
 @user_bp.route('/character')
+@login_required
+@admin_required
 def character():
     characters=CharacterModel.query.all()
     addcharacterform=AddcharacterForm()
@@ -220,6 +239,8 @@ def character():
     return render_template('character.html',characters=characters,addcharacterform=addcharacterform,altercharacterform=altercharacterform)
 
 @user_bp.post('/addcharacter')
+@login_required
+@admin_required
 def addcharacter():
     addcharacterform=AddcharacterForm()
     if addcharacterform.validate():
@@ -247,6 +268,8 @@ def addcharacter():
         return redirect(url_for('user.character'))
     
 @user_bp.post('/altercharacter/<string:role_code>')
+@login_required
+@admin_required
 def altercharacter(role_code):
     altercharacterform=AltercharacterForm()
     if altercharacterform.validate():
@@ -267,3 +290,83 @@ def altercharacter(role_code):
             for error in errors:
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
+
+@user_bp.route('/permission')
+@login_required
+@admin_required
+def permission():
+    permissions=PermissionModel.query.all()
+    authorized_users = [p.username for p in permissions]
+
+    if authorized_users:
+        users_available = UserModel.query.filter(UserModel.username.notin_(authorized_users)).all()
+    else:
+        users_available = UserModel.query.all()
+    addpermissionform=AddPermissionForm()
+    addpermissionform.username.choices=[('', '请选择用户')] + [(u.username, f"{u.username} - {u.realname} - {u.email or '无邮箱'}") for u in users_available]
+    addpermissionform.charactercode.choices=[('', '请选择角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    alterpermissionform=AlterPermissionForm()
+    alterpermissionform.charactercode.choices=[('', '请选择角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+    return render_template('permission.html',permissions=permissions,addpermissionform=addpermissionform,alterpermissionform=alterpermissionform)
+
+@user_bp.post('/addpermission')
+@login_required
+@admin_required
+def addpermission():
+    permissions=PermissionModel.query.all()
+    authorized_users = [p.username for p in permissions]
+
+    if authorized_users:
+        users_available = UserModel.query.filter(UserModel.username.notin_(authorized_users)).all()
+    else:
+        users_available = UserModel.query.all()
+    addpermissionform=AddPermissionForm()
+    addpermissionform.username.choices=[('', '请选择用户')] + [(u.username, f"{u.username} - {u.realname} - {u.email or '无邮箱'}") for u in users_available]
+    addpermissionform.charactercode.choices=[('', '请选择角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+
+    if addpermissionform.validate():
+        username = addpermissionform.username.data
+        if PermissionModel.query.filter_by(username=username).first():
+            flash('该用户已存在权限配置，请勿重复添加', 'error')
+        else:
+            perm = PermissionModel(
+                username=username,
+                charactercode=addpermissionform.charactercode.data,
+                keycode=addpermissionform.permission.data
+            )
+            try:
+                db.session.add(perm)
+                db.session.commit()
+                flash('权限赋予成功', 'success')
+            except Exception as e:
+                db.session.rollback()
+                flash(f'添加失败: {str(e)}', 'error')
+    else:
+        flash('表单数据验证失败', 'error')
+    
+    return redirect(url_for('user.permission'))
+
+@user_bp.post('/alterpermission/<string:username>')
+@login_required
+@admin_required
+def alterpermission(username):
+    alterpermissionform = AlterPermissionForm()
+    # 重新填充 choices
+    alterpermissionform.charactercode.choices=[('', '请选择角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
+
+    if alterpermissionform.validate():
+        perm = PermissionModel.query.filter_by(username=username).first()
+        if perm:
+            try:
+                perm.charactercode = alterpermissionform.charactercode.data
+                perm.keycode = alterpermissionform.role_desc.data # 前端字段名为 role_desc，对应数据库 keycode
+                db.session.commit()
+                return jsonify({'code': 200, 'msg': '权限修改成功'})
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'code': 500, 'msg': f'数据库错误: {str(e)}'})
+        else:
+            return jsonify({'code': 404, 'msg': '未找到该用户的权限记录'})
+    else:
+        errors = "; ".join([msg for sublist in alterpermissionform.errors.values() for msg in sublist])
+        return jsonify({'code': 400, 'msg': errors})

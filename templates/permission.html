@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}权限信息管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/product.css')}}" />
+<style>
+.dataTables_wrapper .dt-top-toolbar{
+    min-height: 60px !important;
+    padding: 12px 16px !important;
+}
+
+/* 强制拉开长度/搜索区域的高度 */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter{
+    padding: 10px 0 !important;
+    margin: 0 !important;
+}
+
+/* 让 label/input 垂直居中 */
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label{
+    margin: 0 !important;
+    line-height: 32px !important;
+}
+.dataTables_wrapper .dataTables_filter input{
+    height: 20px !important;
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">角色管理</a> </div>
+    <h1>权限管理</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>用户列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered data-table">
+                        <thead>
+                            <tr>
+                                <th>用户名</th>
+                                <th>真实姓名</th>
+                                <th>所属角色</th>
+                                <th>权限</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for permission in permissions %}
+                            <tr class="gradeX">
+                                <td>{{permission.username}}</td>
+                                <td>{{permission.guser.realname}}</td>
+                                <td>{{permission.gcharacter.charactername}}</td>
+                                <td class="center">{{permission.keycode}}</td>
+                                <td>
+                                    <span> <a href="#" class="btn btn-danger btn-mini">编辑</a> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-info-sign"></i> </span>
+                    <h5>赋予权限</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <form class="form-horizontal" method="post" action="{{url_for('user.addpermission')}}" name="basic_validate" id="basic_validate" novalidate="novalidate">
+                        {{ addpermissionform.csrf_token }}
+                        <div class="control-group">
+                            <label class="control-label">{{addpermissionform.username.label}}</label>
+                            <div class="controls">
+                                {{addpermissionform.username}}
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{addpermissionform.charactercode.label}}</label>
+                            <div class="controls">
+                                {{addpermissionform.charactercode}}
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">{{addpermissionform.permission.label}}</label>
+                            <div class="controls">
+                                {{addpermissionform.permission}}
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            {{addpermissionform.confer}}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="editRoleModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="editRoleLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="editRoleLabel">编辑权限</h3>
+    </div>
+    <form id="editRoleForm" class="form-horizontal">
+        {{ alterpermissionform.csrf_token }}
+        <div class="modal-body">
+        <div class="control-group">
+            <label class="control-label">{{alterpermissionform.role_code.label}}</label>
+            <div class="controls">
+                {{alterpermissionform.role_code}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label">{{alterpermissionform.charactercode.label}}</label>
+            <div class="controls">
+                {{alterpermissionform.charactercode}}
+            </div>
+        </div>
+        <div class="control-group">
+            <label class="control-label">{{alterpermissionform.role_desc.label}}</label>
+            <div class="controls">
+                {{alterpermissionform.role_desc}}
+            </div>
+        </div>
+        </div>
+        <div class="modal-footer">
+            <span class="edit-msg pull-left" style="margin-top: 5px; font-weight: bold;"></span>
+            <button type="button" class="btn" data-dismiss="modal">取消</button>
+            {{alterpermissionform.alter}}
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script>
+$(function(){
+  var $table = $('.data-table');
+
+  $.fn.modal.Constructor.prototype.enforceFocus = function() {};
+
+  var $modalSelect = $('#editRoleModal select[name="charactercode"]');
+  if ($modalSelect.length > 0) {
+      $modalSelect.select2({ width: '280px' });
+      var s2Instance = $modalSelect.data('select2');
+      if (s2Instance) {
+          s2Instance.body = function() {
+              return $('#editRoleModal');
+          };
+      }
+  }
+
+  var $currentRow = null;
+
+  $(document).on('click', 'table a', function(e){
+    var txt = $(this).text().replace(/\s+/g,'').trim();
+    var $tr = $(this).closest('tr');
+
+    if(txt === '编辑'){
+      e.preventDefault();
+      $currentRow = $tr;
+      var code = $tr.find('td').eq(0).text().trim();
+      var name = $tr.find('td').eq(2).text().trim(); 
+      var desc = $tr.find('td').eq(3).text().trim();
+
+      $('#editRoleModal input[name="role_code"]').val(code);
+      var $select = $('#editRoleModal select[name="charactercode"]');
+
+      var realValue = $select.find('option').filter(function() {
+          return $(this).text() === name; 
+      }).val();
+      
+      $select.val(realValue).trigger('change');
+      $('#editRoleModal input[name="role_desc"]').val(desc);
+
+      var validator = $("#editRoleForm").validate();
+      validator.resetForm();
+      $('#editRoleForm .control-group').removeClass('error success');
+
+      $('#editRoleModal').modal('show');
+      return;
+    }
+  });
+
+  var commonValidateOptions = {
+      errorClass: "help-inline",
+      errorElement: "span",
+      highlight: function(element, errorClass, validClass) {
+          $(element).parents('.control-group').addClass('error');
+          $(element).parents('.control-group').removeClass('success').addClass('error');
+      },
+      unhighlight: function(element, errorClass, validClass) {
+          $(element).parents('.control-group').removeClass('error');
+          $(element).parents('.control-group').addClass('success');
+          $(element).parents('.control-group').removeClass('error').addClass('success');
+      },
+      ignore: "" 
+  };
+
+  $("#basic_validate").validate($.extend({}, commonValidateOptions, {
+      rules: {
+          username: { required: true },
+          charactercode: { required: true },
+          permission: { required: true ,min: 0, max: 1 }
+      },
+      messages: {
+          username: "请选择用户",
+          charactercode: "请选择所属角色",
+          permission: "请输入正确的权限编号：0或1"
+      }
+  }));
+
+  $("#editRoleForm").validate($.extend({}, commonValidateOptions, {
+      rules: {
+          charactercode: { required: true },
+          role_desc: { required: true ,min: 0, max: 1 }
+      },
+      messages: {
+          charactercode: "请选择所属角色",
+          role_desc: "请输入正确的权限编号：0或1"
+      },
+
+      submitHandler: function(form) {
+          if(!$currentRow) return;
+          
+          var code = $(form).find('input[name="role_code"]').val();
+          var name = $(form).find('select[name="charactercode"] option:selected').text();
+          var desc = $(form).find('input[name="role_desc"]').val();
+
+          // 构造 URL
+          var baseUrl = "{{ url_for('user.alterpermission', username='__USER__') }}";
+          var finalUrl = baseUrl.replace('__USER__', encodeURIComponent(code));
+          
+          var $msgSpan = $('.edit-msg');
+
+          $.ajax({
+              url: finalUrl,
+              type: 'POST',
+              data: $(form).serialize(),
+              success: function(res) {
+                  if (res.code === 200) {
+                      // 更新前端表格
+                      $currentRow.find('td').eq(2).text(name);
+                      $currentRow.find('td').eq(3).text(desc);
+
+                      // 提示成功并关闭，效果同 sequence.html
+                      $msgSpan.css('color', 'green').text('修改成功！');
+                      setTimeout(function(){
+                          $('#editRoleModal').modal('hide');
+                          $currentRow = null;
+                      }, 500);
+                  } else {
+                      $msgSpan.css('color', 'red').text(res.msg || '修改失败');
+                  }
+              },
+              error: function() {
+                  $msgSpan.css('color', 'red').text('服务器通信错误，请稍后重试');
+              }
+          });
+      }
+  }));
+
+  $('select').on("change", function(e) { 
+      $(this).valid(); 
+  });
+
+});
+</script>
+{% endblock %}

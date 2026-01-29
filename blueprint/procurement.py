@@ -6,12 +6,14 @@ from models import UserModel,SupplierModel,MaterialModel,PRHeaderModel,PRLineMod
 from forms import AddsupplierForm,AltersupplierForm
 from sqlalchemy import text
 from snowflake import SnowflakeGenerator
+from decorators import login_required,admin_required
 
 gen = SnowflakeGenerator(0)
 
 procurement_bp=Blueprint('procurement',__name__,url_prefix='/procurement')
 
 @procurement_bp.route('/suppliermanage')
+@login_required
 def suppliermanage():
     suppliers = SupplierModel.query.all()
     addsupplierform=AddsupplierForm()
@@ -19,6 +21,8 @@ def suppliermanage():
     return render_template('suppliermanage.html',suppliers=suppliers,addsupplierform=addsupplierform,altersupplierform=altersupplierform)
 
 @procurement_bp.post('/addsupplier')
+@login_required
+@admin_required
 def addsupplier():
     addsupplierform=AddsupplierForm()
     if addsupplierform.validate():
@@ -47,6 +51,8 @@ def addsupplier():
         return redirect(url_for('procurement.suppliermanage'))
 
 @procurement_bp.post('/altersupplier/<string:role_code>')
+@login_required
+@admin_required
 def altersupplier(role_code):
     altersupplierform=AltersupplierForm()
     if altersupplierform.validate():
@@ -70,11 +76,13 @@ def altersupplier(role_code):
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
     
 @procurement_bp.route('/prmanage')
+@login_required
 def prmanage():
     prlines=PRLineModel.query.all()
     return render_template('prmanage.html',prlines=prlines)
 
 @procurement_bp.route('/pradd')
+@login_required
 def pradd():
     username=session.get('username')
     user=UserModel.query.filter_by(username=username).first()
@@ -100,6 +108,7 @@ def pradd():
     return render_template('pradd.html',username=username,realname=realname,email=email,suppliers_json=suppliers_json,materials_json=materials_json)
 
 @procurement_bp.post('/submit_pr')
+@login_required
 def submit_pr():
     try:
         # 1. 获取前端 JSON 数据
@@ -152,6 +161,7 @@ def submit_pr():
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
     
 @procurement_bp.route('/prinfo/<string:pr_code>')
+@login_required
 def prinfo(pr_code):
     prheader=PRHeaderModel.query.filter_by(prcode=pr_code).first()
     suppliers = SupplierModel.query.all()
@@ -174,6 +184,7 @@ def prinfo(pr_code):
     return render_template('prinfo.html',prheader=prheader,suppliers_json=suppliers_json,materials_json=materials_json)
 
 @procurement_bp.post('/prheader_update')
+@login_required
 def prheader_update():
     try:
         data = request.get_json()
@@ -198,6 +209,7 @@ def prheader_update():
         return jsonify({'code': 500, 'msg': str(e)})
 
 @procurement_bp.post('/prline_update')
+@login_required
 def prline_update():
     try:
         data = request.get_json()
@@ -248,6 +260,7 @@ def prline_update():
         return jsonify({'code': 500, 'msg': str(e)})
 
 @procurement_bp.post('/prline_delete')
+@login_required
 def prline_delete():
     try:
         data = request.get_json()
@@ -272,6 +285,7 @@ def prline_delete():
         return jsonify({'code': 500, 'msg': str(e)})
 
 @procurement_bp.post('/pr_delete')
+@login_required
 def pr_delete():
     try:
         data = request.get_json()
@@ -292,11 +306,13 @@ def pr_delete():
         return jsonify({'code': 500, 'msg': str(e)})
     
 @procurement_bp.route('/preview')
+@login_required
 def preview():
     prheaders=PRHeaderModel.query.filter(PRHeaderModel.prstatus=='待审核').all()
     return render_template('preview.html',prheaders=prheaders)
 
 @procurement_bp.route('/issue_pr/<string:pr_code>')
+@login_required
 def issue_pr(pr_code):
     prheader=PRHeaderModel.query.filter_by(prcode=pr_code).first()
     if not prheader:
@@ -310,6 +326,7 @@ def issue_pr(pr_code):
     return render_template_string("""<script>alert('下达成功！');window.location.href="{{ url_for('procurement.prmanage') }}";</script>""")
 
 @procurement_bp.post('/pr_reject')
+@login_required
 def pr_reject():
     data = request.get_json(silent=True) or {}
     prcodes = data.get('prcodes') or []
@@ -336,21 +353,25 @@ def pr_reject():
         return jsonify({'code': 500, 'msg': str(e)})
 
 @procurement_bp.route('/prdetails/<string:pr_code>')
+@login_required
 def prdetails(pr_code):
     prheader=PRHeaderModel.query.filter_by(prcode=pr_code).first()
     return render_template('prdetails.html',prheader=prheader)
 
 @procurement_bp.route('/pomanage')
+@login_required
 def pomanage():
     poheaders=POHeaderModel.query.all()
     return render_template('pomanage.html', poheaders=poheaders)
 
 @procurement_bp.route('/podetails/<string:po_code>')
+@login_required
 def podetails(po_code):
     poheader=POHeaderModel.query.filter_by(pocode=po_code).first()
     return render_template('podetails.html',poheader=poheader)
 
 @procurement_bp.post('/pr_approve')
+@login_required
 def pr_approve():
     data = request.get_json(silent=True) or {}
     prcodes = data.get('prcodes') or []
@@ -403,6 +424,7 @@ def pr_approve():
         return jsonify({'code': 500, 'msg': f"系统错误: {err_str}"})
     
 @procurement_bp.post('/po_place_order')
+@login_required
 def po_place_order():
     data = request.get_json(silent=True) or {}
     pocodes = data.get('pocodes') or []

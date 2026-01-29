@@ -105,13 +105,51 @@ class AlterwarehouseForm(FlaskForm):
 
 class CraftForm(FlaskForm):
 	role_code=StringField('物料编码',render_kw={'placeholder':'请输入物料编码','readonly': True})
-	department=SelectField('负责部门',render_kw={'placeholder':'请选择负责部门'},validators=[InputRequired(message='请选择负责部门')])
+	sequence=SelectField('所属工序',render_kw={'placeholder':'请选择所属工序'},validators=[InputRequired(message='请选择所属工序')])
 	warehouse=SelectField('完成存放仓库',render_kw={'placeholder':'请选择完成存放仓库'},validators=[InputRequired(message='请选择完成存放仓库')])
 	alteruser=StringField('最近更新人',render_kw={'placeholder':'请输入最近更新人','readonly': True})
 	submit=SubmitField()
 
 class AddcraftForm(FlaskForm):
     materialcode=SelectField('物料编码',render_kw={'placeholder':'请选择物料编码'},validators=[InputRequired(message='请选择物料编码')])
-    department=SelectField('负责部门',render_kw={'placeholder':'请选择负责部门'},validators=[InputRequired(message='请选择负责部门')])
+    sequence=SelectField('所属工序',render_kw={'placeholder':'请选择所属工序'},validators=[InputRequired(message='请选择所属工序')])
     warehouse=SelectField('完成存放仓库',render_kw={'placeholder':'请选择完成存放仓库'},validators=[InputRequired(message='请选择完成存放仓库')])
     add=SubmitField('添加生产工艺')
+
+class AddsequenceForm(FlaskForm):
+    required=StringField('工序编码',render_kw={'placeholder':'请输入工序编码'},validators=[Length(max=50,message="工序编码超长!")])
+    realname=StringField('工序名称',render_kw={'placeholder':'请输入工序名称'},validators=[Length(max=50,message="工序名称超长!")])
+    role=SelectField('负责角色',render_kw={'placeholder':'请选择负责角色'},validators=[InputRequired(message='请选择负责角色')])
+    add=SubmitField('添加工序信息')
+
+class AltersequenceForm(FlaskForm):
+    role_code=StringField('工序编码',render_kw={'placeholder':'请输入工序编码','readonly': True})
+    role_name=StringField('工序名称',render_kw={'placeholder':'请输入工序名称'},validators=[DataRequired(message='请输入工序名称!'),Length(max=50,message="工序名称超长!")])
+    role=SelectField('负责角色',render_kw={'placeholder':'请选择负责角色'},validators=[InputRequired(message='请选择负责角色')])
+    alter=SubmitField('保存')
+
+class AddtaskForm(FlaskForm):
+    required=StringField('任务编码',render_kw={'placeholder':'请输入任务编码'},validators=[Length(max=50,message="任务编码超长!")])
+    realname=StringField('任务名称',render_kw={'placeholder':'请输入任务名称'},validators=[Length(max=50,message="任务名称超长!")])
+    endtime=StringField('计划完成日期',validators=[DataRequired(message='请输入完成日期!')])
+    items_json = HiddenField('生产项数据')
+    submit=SubmitField('创建生产任务')
+
+class AltertaskForm(FlaskForm):
+    required=StringField('任务编码',render_kw={'placeholder':'请输入任务编码','readonly': True})
+    realname=StringField('任务名称',render_kw={'placeholder':'请输入任务名称'},validators=[Length(max=50,message="任务名称超长!")])
+    endtime=StringField('计划完成日期',validators=[DataRequired(message='请输入完成日期!')])
+    items_json = HiddenField('生产项数据')
+    submit=SubmitField('保存修改')
+
+class AddPermissionForm(FlaskForm):
+    username=SelectField('用户名')
+    charactercode=SelectField('所属角色')
+    permission=IntegerField('权限编号',validators=[NumberRange(min=0, max=1)])
+    confer=SubmitField('赋予权限',render_kw={'class':'btn btn-success'})
+
+class AlterPermissionForm(FlaskForm):
+    role_code=StringField('用户名',render_kw={'class':'input-xlarge','readonly': True})
+    charactercode=SelectField('所属角色')
+    role_desc=IntegerField('权限编号',validators=[NumberRange(min=0, max=1)])
+    alter=SubmitField('修改权限',render_kw={'class':'btn btn-primary'})
