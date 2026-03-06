@@ -4,6 +4,7 @@ from blueprint.procurement import procurement_bp
 from blueprint.product import product_bp
 from blueprint.storage import storage_bp
 from blueprint.customer import customer_bp
+from blueprint.taskmodule import taskmodule_bp
 from exts import db,mail
 from flask_migrate import Migrate
 from decorators import login_required,admin_required
@@ -20,15 +21,18 @@ app.register_blueprint(procurement_bp)
 app.register_blueprint(product_bp)
 app.register_blueprint(storage_bp)
 app.register_blueprint(customer_bp)
+app.register_blueprint(taskmodule_bp)
 
 with app.app_context():
     #根据模型建表,如果数据库中模型中涉及的的表已经存在,就直接跳过,即使后续作出修改也不会影响
     db.create_all()
 
+#默认登录页
 @app.route('/')
 def index():
     return redirect(url_for('user.login'))
 
+#首页
 @app.route('/home')
 @login_required
 def home():

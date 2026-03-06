@@ -18,7 +18,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.suppliermanage')}}" class="current">供应商管理</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.suppliermanage')}}" class="current"><i class="icon-shopping-cart"></i> 供应商管理</a> </div>
     <h1>供应商管理</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -63,7 +63,7 @@
                 <td>{{supplier.altertime}}</td>
                 {% if session['charactercode'] == 'GAdmin' %}
                 <td>
-                  <span> <a href="#" class="btn btn-danger btn-mini">编辑</a> </span>
+                  <span> <a href="#" class="btn btn-danger btn-mini"><i class="icon-pencil"></i> 编辑</a> </span>
                 </td>
                 {% endif %}
               </tr>

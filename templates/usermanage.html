@@ -9,7 +9,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('user.usermanage')}}" class="current">用户管理</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('user.usermanage')}}" class="current"><i class="icon-user-md"></i> 用户管理</a> </div>
     <h1>用户管理</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -49,9 +49,8 @@
                             <td>{{user.email}}</td>
                             <td class="center">{{user.effectivedate}}</td>
                             <td>
-                                <span> <a href="#" class="btn btn-primary btn-mini">角色</a> </span>
-                                <span> <button type="button" class="btn btn-mini btn-primary btn-edit" data-username="{{user.username}}" data-realname="{{user.realname}}" data-email="{{user.email}}">编辑</button> </span>
-                                <span> <a href="#" class="btn btn-danger btn-mini">密码</a> </span>
+                                <span> <button type="button" class="btn btn-mini btn-primary btn-edit" data-username="{{user.username}}" data-realname="{{user.realname}}" data-email="{{user.email}}"><i class="icon-pencil"></i> 编辑</button> </span>
+                                <span> <a href="#" class="btn btn-danger btn-mini"><i class="icon-lock"></i> 密码</a> </span>
                             </td>
                         </tr>
                         {% endfor %}

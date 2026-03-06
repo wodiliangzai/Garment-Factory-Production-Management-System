@@ -6,7 +6,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('customer.somanage')}}">客单管理</a> <a href="{{ url_for('customer.soinfo', orderid=soheader.orderid) }}" class="current">客单详情</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('customer.somanage')}}"><i class="icon-edit"></i> 客单管理</a> <a href="{{ url_for('customer.soinfo', orderid=soheader.orderid) }}" class="current"><i class="icon-info-sign"></i> 客单详情</a> </div>
     <h1>客户订单详情</h1>
 </div>
 <div class="container-fluid"><hr>
@@ -98,7 +98,10 @@
                             <div class="pull-right">
                                 <h4><span>总计:</span> {{ ns.total }}</h4>
                                 <br>
-                                <a class="btn btn-primary btn-large pull-right" href="{{ url_for('customer.somanage')}}">返回</a> 
+                                <a class="btn btn-primary btn-large pull-right" href="{{ url_for('customer.somanage')}}">返回</a>
+                                {% if soheader.orderstatus != '已交付' %}
+                                <a class="btn btn-danger btn-large pull-right" style="margin-right: 20px;" href="#">交付</a>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

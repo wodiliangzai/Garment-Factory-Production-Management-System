@@ -215,17 +215,17 @@ class PItemModel(db.Model):
     completed=db.Column(db.Numeric(18,6),nullable=False) #完成数量
     itemqr=db.Column(NVARCHAR(None),nullable=True) #生产项二维码
 
-class PReport(db.Model):
+class PReportModel(db.Model):
     __tablename__='GPReport' #报产记录表
     reportid=db.Column(NVARCHAR(50),primary_key=True) #报产记录编号
     itemid=db.Column(NVARCHAR(50),db.ForeignKey('GPItem.itemid'),nullable=False) #生产项编号
     gpitem=db.relationship(PItemModel,backref='preports')
     reporter=db.Column(NVARCHAR(50),db.ForeignKey('GPermission.username'),nullable=False) #报产人
-    gpermission=db.relationship(PermissionModel,backref='preports')
-    reportquantity=db.Column(db.Numeric(18,6),nullable=False) #报产数量
+    gpermission=db.relationship(PermissionModel,backref='preports',foreign_keys=[reporter])
+    reportquantity=db.Column(db.Numeric(18,6),nullable=False) #计划产量
+    realquantity=db.Column(db.Numeric(18,6),nullable=False) #实际产量
     reporttime=db.Column(db.DateTime,nullable=False) #报产时间
     reviewstatus=db.Column(NVARCHAR(20),nullable=False) #审核状态(待审核/已审核/不通过)
-    reviewquantity=db.Column(db.Numeric(18,6),nullable=False) #审核通过数量
     reviewer=db.Column(NVARCHAR(50),db.ForeignKey('GPermission.username'),nullable=True) #审核人
     gpermission_reviewer=db.relationship(PermissionModel,foreign_keys=[reviewer])
     reviewtime=db.Column(db.DateTime,nullable=True) #审核时间

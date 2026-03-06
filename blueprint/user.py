@@ -62,12 +62,14 @@ def get_email_captcha():
     session['mail_captcha'] = captcha
     return jsonify({"code": 200, "message": "", "data": None})
 
+#退登
 @user_bp.route('/logout')
 @login_required
 def logout():
     session.clear()
     return redirect(url_for("user.login"))
 
+#登录
 @user_bp.route('/login',methods=['GET','POST'])
 def login():
     loginform=LoginForm()
@@ -99,7 +101,8 @@ def login():
                 error_msgs.extend(field_errors)
             # 传递到模板
             return render_template('login.html', form=loginform, form2=forgotpwdform,error_msgs=error_msgs)
-        
+
+#忘记密码第一步        
 @user_bp.post('/forgotpwd')
 def forgotpwd():
     forgotpwdform=ForgotpwdForm()
@@ -123,6 +126,7 @@ def forgotpwd():
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "message": "; ".join(error_msgs), "data": None})
 
+#忘记密码第二步
 @user_bp.post('/resetpwd')
 def resetpwd():
     username=session.get('reset_username')
@@ -135,6 +139,7 @@ def resetpwd():
     session.pop('reset_username', None)
     return jsonify({'code':200,'msg':'密码重置成功'})
 
+#用户管理界面
 @user_bp.route('/usermanage')
 @login_required
 @admin_required
@@ -144,6 +149,7 @@ def usermanage():
     users=UserModel.query.all()
     return render_template('usermanage.html',users=users,updateuserForm=updateuserForm,adduserForm=adduserForm)
 
+#更新用户信息
 @user_bp.post('/updateuser/<string:hide_username>')
 @login_required
 @admin_required
@@ -174,7 +180,8 @@ def updateuser(hide_username):
                 error_msgs.append(f"{error}")
         flash("修改用户失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('user.usermanage'))
-        
+
+#添加用户信息       
 @user_bp.post('/adduser')
 @login_required
 @admin_required
@@ -204,7 +211,8 @@ def adduser():
                 error_msgs.append(f"{error}")
         flash("用户添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('user.usermanage'))
-    
+
+#用户验证（初始化密码前验证）    
 @user_bp.post('/verification')
 @login_required
 @admin_required
@@ -216,6 +224,7 @@ def userverification():
         return jsonify({'code':400,'msg':'验证失败'})
     return jsonify({'code':200,'msg':'验证成功'})
 
+#初始化用户密码
 @user_bp.post('/updatepwd')
 @login_required
 @admin_required
@@ -229,6 +238,7 @@ def updatepwd():
     db.session.commit()
     return jsonify({'code':200,'msg':'密码修改成功'})
 
+#角色管理界面
 @user_bp.route('/character')
 @login_required
 @admin_required
@@ -238,6 +248,7 @@ def character():
     altercharacterform=AltercharacterForm()
     return render_template('character.html',characters=characters,addcharacterform=addcharacterform,altercharacterform=altercharacterform)
 
+#添加角色信息
 @user_bp.post('/addcharacter')
 @login_required
 @admin_required
@@ -266,7 +277,8 @@ def addcharacter():
                 error_msgs.append(f"{error}")
         flash("角色添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('user.character'))
-    
+
+#修改角色信息    
 @user_bp.post('/altercharacter/<string:role_code>')
 @login_required
 @admin_required
@@ -291,6 +303,7 @@ def altercharacter(role_code):
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
 
+#权限管理界面
 @user_bp.route('/permission')
 @login_required
 @admin_required
@@ -309,6 +322,7 @@ def permission():
     alterpermissionform.charactercode.choices=[('', '请选择角色')] + [(c.charactercode, c.charactername) for c in CharacterModel.query.all()]
     return render_template('permission.html',permissions=permissions,addpermissionform=addpermissionform,alterpermissionform=alterpermissionform)
 
+#添加权限信息
 @user_bp.post('/addpermission')
 @login_required
 @admin_required
@@ -346,6 +360,7 @@ def addpermission():
     
     return redirect(url_for('user.permission'))
 
+#修改权限信息
 @user_bp.post('/alterpermission/<string:username>')
 @login_required
 @admin_required

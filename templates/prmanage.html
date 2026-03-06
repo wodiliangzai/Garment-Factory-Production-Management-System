@@ -128,7 +128,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage') }}" class="current">采购申请</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage') }}" class="current"><i class="icon-ok-circle"></i> 采购申请</a> </div>
     <h1>采购申请管理</h1>
 </div>
 <div class="container-fluid">
@@ -140,7 +140,7 @@
                     <h5>申请操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    <a href="{{ url_for('procurement.pradd') }}" class="btn btn-success">新建</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                    <a href="{{ url_for('procurement.pradd') }}" class="btn btn-success"><i class="icon-plus"></i> 新建</a> <a href="#" class="btn btn-warning"><i class="icon-paste"></i> 导出</a> <a href="{{ url_for('procurement.prmanage') }}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
                 </div>
             </div>
             <div class="widget-box">
@@ -180,7 +180,7 @@
                                 <td>{{ prline.gprheader.gsupplier.suppliername }}</td>
                                 <td>MO-GX20251210000169002</td>
                                 <td>
-                                <span> <a href="{{ url_for('procurement.prinfo', pr_code=prline.prcode) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                <span> <a href="{{ url_for('procurement.prinfo', pr_code=prline.prcode) }}" class="btn btn-primary btn-mini"><i class="icon-info-sign"></i> 详情</a> </span>
                                 </td>
                             </tr>
                             {% endfor %}

@@ -9,7 +9,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home') }}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('user.character') }}" class="current">角色管理</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home') }}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('user.character') }}" class="current"><i class="icon-group"></i> 角色管理</a> </div>
     <h1>角色管理</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -50,8 +50,7 @@
                 <td class="center">{{character.effectivedate}}</td>
                 <td>
                   {% if character.fixed!='Y' %}
-                  <span> <a href="#" class="btn btn-primary btn-mini">成员</a> </span>
-                  <span> <a href="#" class="btn btn-danger btn-mini">编辑</a> </span>
+                  <span> <a href="#" class="btn btn-danger btn-mini"><i class="icon-pencil"></i> 编辑</a> </span>
                   {% endif %}
                 </td>
               </tr>

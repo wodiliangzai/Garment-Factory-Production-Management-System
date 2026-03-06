@@ -295,9 +295,9 @@ def processinfo(craft_id):
         }
         for material in materials
     ], ensure_ascii=False)
-    return render_template('processinfo.html', craft_id=craft_id, craftform=craftform, recipe_tree=recipe_tree,materials_json=materials_json)
+    return render_template('processinfo.html', craft=craft,craft_id=craft_id, craftform=craftform, recipe_tree=recipe_tree,materials_json=materials_json)
 
-@product_bp.route('/updatecraft/<string:craft_id>', methods=['POST'])
+@product_bp.post('/updatecraft/<string:craft_id>')
 @login_required
 @admin_required
 def updatecraft(craft_id):
@@ -308,7 +308,7 @@ def updatecraft(craft_id):
     
     if craftform.validate_on_submit():
         craft = CraftModel.query.filter_by(craftid=craft_id).first()
-        if craft:
+        if craft and craft.usagestatus=='未使用':
             # 更新字段
             craft.sequenceid = craftform.sequence.data
             craft.storage = craftform.warehouse.data
@@ -322,7 +322,7 @@ def updatecraft(craft_id):
                 db.session.rollback()
                 flash(f'修改失败: {str(e)}', 'error')
         else:
-            flash('修改失败：工艺记录不存在', 'error')
+            flash('修改失败：工艺使用中或工艺不存在', 'error')
     else:
         # 收集表单验证错误
         error_msgs = []
@@ -339,23 +339,20 @@ def updatecraft(craft_id):
 @admin_required
 def deletecraft(craft_id):
     craft = CraftModel.query.filter_by(craftid=craft_id).first()
-    if craft:
+    if craft and craft.usagestatus=='未使用':
         try:
-            # 先删除关联的配方行（防止外键约束报错）
             FormulaModel.query.filter_by(craftid=craft_id).delete()
-            # 删除工艺头信息
             db.session.delete(craft)
             db.session.commit()
             flash('生产工艺及关联配方已删除', 'success')
         except Exception as e:
             db.session.rollback()
             flash(f'删除失败: {str(e)}', 'error')
-            # 如果出错，停留在详情页以便查看问题
+
             return redirect(url_for('product.processinfo', craft_id=craft_id))
     else:
-        flash('该工艺不存在', 'error')
-        
-    # 删除成功后跳转到管理列表页
+        flash('该工艺使用中或不存在', 'error')
+
     return redirect(url_for('product.processmanage'))
 
 @product_bp.post('/formula_update')
@@ -365,7 +362,12 @@ def formula_update():
     try:
         data = request.get_json()
         formula_id = data.get('formula_id')
-        craft_id = data.get('craft_id')       # 当前页面的工艺ID
+        craft_id = data.get('craft_id')
+        craft = CraftModel.query.filter_by(craftid=craft_id).first()
+        if not craft:
+            return jsonify({'code': 404, 'msg': '关联工艺未找到，操作失败'})
+        if craft.usagestatus == '使用中':
+            return jsonify({'code': 400, 'msg': '工艺正在使用中，无法修改配方信息'})
         combination = data.get('combination') # 父级物料编码
         component = data.get('component')     # 子级物料编码
         qty = data.get('qty')
@@ -445,12 +447,12 @@ def formula_delete():
             return jsonify({'code': 400, 'msg': '参数缺失'})
 
         formula = FormulaModel.query.filter_by(formulaid=formula_id).first()
-        if formula:
+        if formula and formula.gcraft.usagestatus == '未使用':
             db.session.delete(formula)
             db.session.commit()
             return jsonify({'code': 200, 'msg': '配方删除成功'})
         else:
-            return jsonify({'code': 404, 'msg': '配方不存在或已被删除'})
+            return jsonify({'code': 404, 'msg': '配方不存在或工艺正在使用中'})
 
     except Exception as e:
         db.session.rollback()
@@ -541,7 +543,7 @@ def addtask():
                 create_pitem_recursive(task_id, material_code, qty)
 
             db.session.commit()
-            flash(f"成产任务创建成功！共生成 {len(items_list)} 个任务单。", "success")
+            flash(f"生产任务创建成功！共生成 {len(items_list)} 个任务单。", "success")
             return redirect(url_for('product.taskinfo', task_code=task_code_prefix))
 
         except Exception as e:
@@ -608,8 +610,12 @@ def altertask():
             task_name = form.realname.data
             endtime_str = form.endtime.data
             items_json = form.items_json.data
+            check_task = TOPModel.query.filter_by(taskcode=task_code).all()
+            if not check_task:
+                raise Exception(f"任务【{task_code}】不存在，无法修改！")
+            if any(t.taskstatus != '新建' for t in check_task):
+                raise Exception(f"任务【{task_code}】当前状态不为【新建】，不允许修改！")
             
-            # 日期兼容处理
             try:
                 finish_time = datetime.strptime(endtime_str, '%m/%d/%Y')
             except ValueError:
@@ -712,8 +718,11 @@ def deletetask(task_code):
     try:
         tasks = TOPModel.query.filter_by(taskcode=task_code).all()
         if not tasks:
-            flash("该任务单不存在或已被删除", "error")
+            flash("该任务不存在或已被删除", "error")
             return redirect(url_for('product.taskmanage'))
+        if any(t.taskstatus != '新建' for t in tasks):
+            flash("只能删除状态为【新建】的任务！", "error")
+            return redirect(url_for('product.taskinfo', task_code=task_code))
         
         count = len(tasks)
         for task in tasks:
@@ -736,7 +745,6 @@ def get_task_items(task_id):
     items = PItemModel.query.filter_by(taskid=task_id).all()
     items_data = []
     for item in items:
-        # 获取关联信息
         gmaterial = MaterialModel.query.filter_by(materialcode=item.materialcode).first()
         gsequence = SequenceModel.query.filter_by(sequenceid=item.sequenceid).first()
         
@@ -766,10 +774,12 @@ def update_task_item():
         item = PItemModel.query.filter_by(itemid=item_id).first()
         if not item:
             return jsonify({'code': 404, 'msg': '生产项不存在'})
+
+        if item.gtop.taskstatus != '新建':
+            return jsonify({'code': 403, 'msg': '当前任务状态不允许修改生产项'})
             
         item.quantity = float(new_qty)
-        # 这里不需要更新 altertime/alteruser，因为 PItemModel 很简洁，或者由于它是级联子项
-        
+
         db.session.commit()
         return jsonify({'code': 200, 'msg': '更新成功'})
     except Exception as e:
@@ -788,6 +798,8 @@ def delete_task_item():
         item = PItemModel.query.filter_by(itemid=item_id).first()
         if not item:
             return jsonify({'code': 404, 'msg': '生产项不存在'})
+        if item.gtop.taskstatus != '新建':
+             return jsonify({'code': 403, 'msg': '当前任务状态不允许删除生产项'})
             
         db.session.delete(item)
         db.session.commit()

@@ -8,6 +8,7 @@ from decorators import login_required,admin_required
 
 storage_bp=Blueprint('storage',__name__,url_prefix='/storage')
 
+#仓库管理界面
 @storage_bp.route('/warehouses')
 @login_required
 def warehouses():
@@ -16,6 +17,7 @@ def warehouses():
     alterwarehouseform=AlterwarehouseForm()
     return render_template('warehouse.html',warehouses=warehouses,addwarehouseform=addwarehouseform,alterwarehouseform=alterwarehouseform)
 
+#添加仓库信息
 @storage_bp.post('/addwarehouse')
 @login_required
 @admin_required
@@ -46,7 +48,8 @@ def addwarehouse():
                 error_msgs.append(f"{error}")
         flash("仓库添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('storage.warehouses'))
-    
+
+#修改仓库信息   
 @storage_bp.post('/alterwarehouse/<string:role_code>')
 @login_required
 @admin_required
@@ -74,12 +77,14 @@ def alterwarehouse(role_code):
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
 
+#库存信息界面
 @storage_bp.route('/inventory')
 @login_required
 def inventory():
     inventorie_item = InventoryModel.query.all()
     return render_template('inventory.html',inventorie_item=inventorie_item)
 
+#入库单界面
 @storage_bp.route('/receipt')
 @login_required
 def receipt():
@@ -87,6 +92,7 @@ def receipt():
     warehouses = WarehouseModel.query.all()
     return render_template('receipt.html',receipt_items=receipt_items,warehouses=warehouses)
 
+#收料入库
 @storage_bp.post('/process_receipt')
 @login_required
 def process_receipt():
@@ -142,7 +148,8 @@ def process_receipt():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
-    
+
+#工序信息    
 @storage_bp.route('/sequence')
 @login_required
 def sequence():
@@ -153,6 +160,7 @@ def sequence():
     altersequenceform.role.choices=[(c.charactercode, c.charactername) for c in CharacterModel.query.all()] 
     return render_template('sequence.html',sequences=sequences,addsequenceform=addsequenceform,altersequenceform=altersequenceform)
 
+#添加工序信息
 @storage_bp.post('/addsequence')
 @login_required
 @admin_required
@@ -187,6 +195,7 @@ def addsequence():
         flash("添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('storage.sequence'))
 
+#修改工序信息
 @storage_bp.post('/altersequence/<string:role_code>')
 @login_required
 @admin_required

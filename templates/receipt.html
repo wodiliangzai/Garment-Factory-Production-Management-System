@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('storage.receipt')}}" class="current">领料入库</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('storage.receipt')}}" class="current"><i class="icon-truck"></i> 领料入库</a> </div>
     <h1>领料入库</h1>
 </div>
 <div class="container-fluid">
@@ -22,7 +22,7 @@
                     <h5>操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    {% if session['charactercode'] == 'GAdmin' or session['charactercode'] == 'GPurchaser' %} <a href="#" id="btn-inbound" class="btn btn-success">入库</a> {% endif %} <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                    {% if session['charactercode'] == 'GAdmin' or session['charactercode'] == 'GPurchaser' %} <a href="#" id="btn-inbound" class="btn btn-success"><i class="icon-upload"></i> 入库</a> {% endif %} <a href="#" class="btn btn-warning"><i class="icon-paste"></i> 导出</a> <a href="{{ url_for('storage.receipt')}}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
                 </div>
             </div>
             <div class="widget-box">

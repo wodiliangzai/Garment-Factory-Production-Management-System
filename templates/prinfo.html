@@ -60,7 +60,7 @@
 
 {% block body %}
 <div id="content-header">
-<div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage')}}">采购申请</a> <a href="#" class="current">采购申请信息</a> </div>
+<div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage')}}" class="tip-bottom"><i class="icon-ok-circle"></i> 采购申请</a> <a href="{{ url_for('procurement.prinfo', pr_code=prheader.prcode) }}" class="current"><i class="icon-info-sign"></i> 采购申请信息</a> </div>
     <h1>采购申请信息</h1>
 </div>
 <div class="container-fluid"><hr>

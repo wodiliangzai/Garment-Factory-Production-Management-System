@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">生产任务创建</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.taskmanage')}}" class="tip-bottom"><i class="icon-th-list"></i> 生产任务列表</a> <a href="{{ url_for('product.taskadd')}}" class="current"><i class="icon-cogs"></i> 任务创建</a> </div>
     <h1>生产任务创建</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -66,7 +66,7 @@
                         <div class="form-actions">
                             <!-- <input type="submit" value="创建生产任务" class="btn btn-success"> -->
                             {{ form.submit(class='btn btn-success') }}
-                            <button type="button" id="btn-add-item" class="btn btn-primary">新增生产项</button>
+                            <button type="button" id="btn-add-item" class="btn btn-primary">新增任务单</button>
                         </div>
                     </form>
                 </div>
@@ -77,7 +77,7 @@
         <div class="span12">
             <div class="widget-box">
                 <div class="widget-title"> <span class="icon"> <i class="icon-th"></i> </span>
-                    <h5>生产项</h5>
+                    <h5>任务单列表</h5>
                 </div>
                 <div class="widget-content nopadding">
                     <table class="table table-bordered table-striped">
@@ -128,7 +128,7 @@
           var $tbody = $("#item-table-body");
           if ($tbody.find("tr").length === 0 || $tbody.find(".empty-msg").length > 0) {
               // 修改：colspan 改为 6
-              $tbody.html('<tr class="empty-msg"><td colspan="6" style="text-align:center; color:red;">请点击“新增生产项”按钮添加数据！</td></tr>');
+              $tbody.html('<tr class="empty-msg"><td colspan="6" style="text-align:center; color:red;">请点击“新增任务单”按钮添加数据！</td></tr>');
           }
       }
 
@@ -332,7 +332,7 @@
           // 1. 检查表格是否有数据 (排除空消息行)
           var $dataRows = $("#item-table-body tr").not(".empty-msg");
           if ($dataRows.length === 0) {
-              alert("提交失败：生产项列表不能为空，请至少添加一条数据！");
+              alert("提交失败：任务单列表不能为空，请至少添加一条数据！");
               e.preventDefault(); // 阻止表单提交
               return false;
           }

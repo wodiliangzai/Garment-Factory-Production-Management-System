@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block title %}报产记录审核{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/preview.css')}}" />
+<style>
+  #rejectReason {
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 0;
+  }
+  #rejectReasonError {
+    color: #b94a48;
+    display: none;
+    margin-top: 5px;
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('taskmodule.reportingreview')}}" class="current"><i class="icon-check-empty"></i> 报产记录审核</a> </div>
+    <h1>报产记录审核</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"> <i class="icon-hand-right"></i> </span>
+                    <h5>审核操作</h5>
+                </div>
+                <div class="widget-content"> 
+                    <a href="#" class="btn btn-success" id="btnAudit"><i class="icon-check"></i> 审核</a> <a href="{{ url_for('taskmodule.reportingreview')}}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
+                </div>
+            </div>
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>报产记录列表</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered table-striped with-check" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="title-table-checkbox" name="title-table-checkbox" data-uniform-scope="dt" /></th>
+                                <th>报产记录号</th>
+                                <th>产项编号</th>
+                                <th>物料编码</th>
+                                <th>物料描述</th>
+                                <th>规格型号</th>
+                                <th>报产人</th>
+                                <th>计划产量</th>
+                                <th>实际产量</th>             
+                                <th>报产时间</th>
+                                <th>审核状态</th>
+                                <th>驳回</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td><input type="checkbox" class="row-checkbox" data-uniform-scope="dt" value="{{item.reportid}}" /></td>
+                                <td>{{item.reportid}}</td>
+                                <td>{{item.itemid}}</td>
+                                <td>{{item.gpitem.materialcode}}</td>
+                                <td>{{item.gpitem.gmaterial.materialdesc}}</td>
+                                <td>{{item.gpitem.gmaterial.specification}}</td>
+                                <td>{{item.gpermission.guser.realname}}</td>
+                                <td>{{item.reportquantity}}</td>
+                                <td>{{item.realquantity}}</td>
+                                <td>{{item.reporttime}}</td>
+                                <td>{{item.reviewstatus}}</td>                 
+                                <td>
+                                    <span> <a href="#" class="btn btn-danger btn-mini btn-reject" data-id="{{item.reportid}}"><i class="icon-warning-sign"></i> 驳回</a> </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="rejectModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">输入驳回理由</h3>
+    </div>
+    <div class="modal-body">
+        <div class="row-fluid">
+            <div class="span12">
+                <textarea id="rejectReason" class="span11" placeholder="请在此输入驳回的详细理由..." rows="5" style="margin-left: 15px;"></textarea>
+                <div style="margin-left: 15px;">
+                    <span id="rejectReasonError">请填写驳回理由！</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">取消</button>
+        <button class="btn btn-danger" id="btnConfirmReject">确定</button>
+    </div>
+</div>
+<div id="alertModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="alertModalLabel">提示信息</h3>
+    </div>
+    <div class="modal-body">
+        <h4>请勾选需要审核的数据！</h4>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" data-dismiss="modal" aria-hidden="true">确定</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
+<script>
+$(document).ready(function() {
+  var $table = $('#materialTable');
+
+  function applyDtUniform() {
+    if (!$.uniform) return;
+
+    var $inputs = $table
+      .find('input[type=checkbox][data-uniform-scope="dt"]')
+      .filter(function() {
+        return $(this).parents('.checker').length === 0;
+      });
+
+    if ($inputs.length) $inputs.uniform();
+  }
+
+  var table = $table.dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aoColumnDefs": [
+      { "bSortable": false, "aTargets": [ 0 ] }
+    ],
+    "aaSorting": [[ 5, "desc" ]],
+    "oLanguage": {
+      "sLengthMenu": "展示 _MENU_ 页",
+      "sZeroRecords": "当前无可审核的报产记录",
+      "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+      "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+      "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+      "sSearch": "搜索：",
+      "oPaginate": {
+        "sFirst": "首页",
+        "sPrevious": "上一页",
+        "sNext": "下一页",
+        "sLast": "尾页"
+      }
+    },
+    "fnDrawCallback": function() {
+      applyDtUniform();
+
+      var $all = $('#title-table-checkbox');
+      $all.prop('checked', false);
+      if ($.uniform) $.uniform.update($all);
+    },
+    "fnInitComplete": function() {
+      $('.dataTables_length select').select2({ minimumResultsForSearch: -1 });
+    }
+  });
+
+  applyDtUniform();
+
+  $(document).on('change', '#title-table-checkbox', function() {
+    var checked = this.checked;
+    var $pageRows = $table.find('tbody tr:visible');
+    var $cbs = $pageRows.find('input.row-checkbox[data-uniform-scope="dt"]');
+
+    $cbs.prop('checked', checked);
+    if ($.uniform) $.uniform.update($cbs);
+  });
+
+  var currentRejectId = null; 
+  // 定义一个变量标记是否需要刷新页面
+  var textReasonReload = false;
+
+  // 将选择器修改为具体的 class .btn-reject，避免冲突
+  $(document).on('click', '.btn-reject', function(e) {
+    e.preventDefault();
+    // 获取当前行的 reportid
+    currentRejectId = $(this).attr('data-id');
+    
+    // 重置内容和错误提示
+    $('#rejectReason').val('');
+    $('#rejectReasonError').hide();
+    // 显示弹窗
+    $('#rejectModal').modal('show');
+  });
+
+  // 监听弹窗完全关闭后的事件
+  $('#rejectModal').on('hidden', function () {
+      if (textReasonReload) {
+        setTimeout(function() {
+          location.reload();
+        }, 300);
+      }
+  });
+
+  // 2. 点击弹窗中的"确定"按钮
+  $('#btnConfirmReject').click(function() {
+    var reason = $('#rejectReason').val();
+    
+    // 简单校验：去空格后是否为空
+    if ($.trim(reason) === "") {
+      $('#rejectReasonError').show(); // 显示错误提示
+      $('#rejectReason').focus();     // 聚焦输入框
+    } else {
+      $('#rejectReasonError').hide();
+      
+      // 发送 AJAX 请求到后端
+      $.ajax({
+          url: "{{ url_for('taskmodule.reject_report') }}",
+          type: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({
+              reportid: currentRejectId,
+              reason: reason
+          }),
+          success: function(response) {
+              if (response.code === 200) {
+                  // 标记为需要刷新
+                  textReasonReload = true;
+                  // 关闭弹窗 (这会触发 hidden 事件从而刷新页面)
+                  $('#rejectModal').modal('hide');
+                  // 可以加上 alert 或者 toast 提示，但这会阻断流畅性，直接刷新通常更好
+                  // alert(response.msg); 
+              } else {
+                  alert("驳回失败: " + response.msg);
+              }
+          },
+          error: function(xhr, status, error) {
+              alert("请求异常: " + error);
+          }
+      });
+    }
+  });
+
+  $('#btnAudit').click(function(e) {
+    e.preventDefault();
+    // 获取表格中选中的 checkbox
+    var $checked = $table.find('tbody input.row-checkbox:checked');
+
+    if ($checked.length === 0) {
+      $('#alertModal').modal('show');
+    } else {
+      // 收集选中的 ID 放入数组
+      var ids = [];
+      $checked.each(function() {
+          ids.push($(this).val());
+      });
+
+      // 弹出确认框
+      if(confirm('确定要审核通过这 ' + ids.length + ' 条记录吗？')) {
+          // 发送 AJAX 请求
+          $.ajax({
+              url: "{{ url_for('taskmodule.approve_reports') }}",
+              type: "POST",
+              contentType: "application/json",
+              data: JSON.stringify({ report_ids: ids }),
+              success: function(response) {
+                  if (response.code === 200) {
+                      // 刷新页面，Flash 消息会在页面顶部显示
+                      location.reload();
+                  } else {
+                      alert("审核失败: " + response.msg);
+                  }
+              },
+              error: function(xhr, status, error) {
+                  alert("系统错误: " + error);
+              }
+          });
+      }
+    }
+  });
+});
+</script>
+{% endblock %}

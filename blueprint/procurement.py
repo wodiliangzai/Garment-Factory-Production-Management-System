@@ -12,6 +12,7 @@ gen = SnowflakeGenerator(0)
 
 procurement_bp=Blueprint('procurement',__name__,url_prefix='/procurement')
 
+#供应商管理界面
 @procurement_bp.route('/suppliermanage')
 @login_required
 def suppliermanage():
@@ -20,6 +21,7 @@ def suppliermanage():
     altersupplierform=AltersupplierForm()
     return render_template('suppliermanage.html',suppliers=suppliers,addsupplierform=addsupplierform,altersupplierform=altersupplierform)
 
+#添加供应商信息
 @procurement_bp.post('/addsupplier')
 @login_required
 @admin_required
@@ -50,6 +52,7 @@ def addsupplier():
         flash("供应商添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('procurement.suppliermanage'))
 
+#修改供应商信息
 @procurement_bp.post('/altersupplier/<string:role_code>')
 @login_required
 @admin_required
@@ -74,13 +77,15 @@ def altersupplier(role_code):
             for error in errors:
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
-    
+
+#采购申请界面    
 @procurement_bp.route('/prmanage')
 @login_required
 def prmanage():
     prlines=PRLineModel.query.all()
     return render_template('prmanage.html',prlines=prlines)
 
+#采购申请添加界面
 @procurement_bp.route('/pradd')
 @login_required
 def pradd():
@@ -107,6 +112,7 @@ def pradd():
     ], ensure_ascii=False)
     return render_template('pradd.html',username=username,realname=realname,email=email,suppliers_json=suppliers_json,materials_json=materials_json)
 
+#添加采购申请
 @procurement_bp.post('/submit_pr')
 @login_required
 def submit_pr():
@@ -159,7 +165,8 @@ def submit_pr():
         db.session.rollback()
         print(f"Error in submit_pr: {e}")
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
-    
+
+#采购申请详情    
 @procurement_bp.route('/prinfo/<string:pr_code>')
 @login_required
 def prinfo(pr_code):
@@ -183,6 +190,7 @@ def prinfo(pr_code):
     ], ensure_ascii=False)
     return render_template('prinfo.html',prheader=prheader,suppliers_json=suppliers_json,materials_json=materials_json)
 
+#采购申请头更新
 @procurement_bp.post('/prheader_update')
 @login_required
 def prheader_update():
@@ -208,6 +216,7 @@ def prheader_update():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
 
+#采购申请行更新
 @procurement_bp.post('/prline_update')
 @login_required
 def prline_update():
@@ -259,6 +268,7 @@ def prline_update():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
 
+#删除采购申请行
 @procurement_bp.post('/prline_delete')
 @login_required
 def prline_delete():
@@ -284,6 +294,7 @@ def prline_delete():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
 
+#删除整个采购申请
 @procurement_bp.post('/pr_delete')
 @login_required
 def pr_delete():
@@ -304,13 +315,15 @@ def pr_delete():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
-    
+
+#采购申请审核界面    
 @procurement_bp.route('/preview')
 @login_required
 def preview():
     prheaders=PRHeaderModel.query.filter(PRHeaderModel.prstatus=='待审核').all()
     return render_template('preview.html',prheaders=prheaders)
 
+#下达采购申请
 @procurement_bp.route('/issue_pr/<string:pr_code>')
 @login_required
 def issue_pr(pr_code):
@@ -325,6 +338,7 @@ def issue_pr(pr_code):
     db.session.commit()
     return render_template_string("""<script>alert('下达成功！');window.location.href="{{ url_for('procurement.prmanage') }}";</script>""")
 
+#驳回采购申请
 @procurement_bp.post('/pr_reject')
 @login_required
 def pr_reject():
@@ -352,24 +366,28 @@ def pr_reject():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
 
+#采购申请信息界面
 @procurement_bp.route('/prdetails/<string:pr_code>')
 @login_required
 def prdetails(pr_code):
     prheader=PRHeaderModel.query.filter_by(prcode=pr_code).first()
     return render_template('prdetails.html',prheader=prheader)
 
+#采购订单界面
 @procurement_bp.route('/pomanage')
 @login_required
 def pomanage():
     poheaders=POHeaderModel.query.all()
     return render_template('pomanage.html', poheaders=poheaders)
 
+#采购订单信息界面
 @procurement_bp.route('/podetails/<string:po_code>')
 @login_required
 def podetails(po_code):
     poheader=POHeaderModel.query.filter_by(pocode=po_code).first()
     return render_template('podetails.html',poheader=poheader)
 
+#采购申请审核
 @procurement_bp.post('/pr_approve')
 @login_required
 def pr_approve():
@@ -422,7 +440,8 @@ def pr_approve():
             return jsonify({'code': 500, 'msg': '审核失败：数据库提示“无效的采购申请编号”，请检查数据一致性。'})
         # 其他错误
         return jsonify({'code': 500, 'msg': f"系统错误: {err_str}"})
-    
+
+#下达采购订单    
 @procurement_bp.post('/po_place_order')
 @login_required
 def po_place_order():

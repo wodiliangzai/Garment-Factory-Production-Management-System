@@ -33,7 +33,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="#" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current">角色管理</a> </div>
+    <div id="breadcrumb"> <a href="#" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="#" class="current"><i class="icon-key"></i> 权限管理</a> </div>
     <h1>权限管理</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -73,7 +73,7 @@
                                 <td>{{permission.gcharacter.charactername}}</td>
                                 <td class="center">{{permission.keycode}}</td>
                                 <td>
-                                    <span> <a href="#" class="btn btn-danger btn-mini">编辑</a> </span>
+                                    <span> <a href="#" class="btn btn-danger btn-mini"><i class="icon-pencil"></i> 编辑</a> </span>
                                 </td>
                             </tr>
                             {% endfor %}

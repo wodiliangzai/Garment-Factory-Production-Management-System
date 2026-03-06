@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>工序报产</title>
+    <link rel="stylesheet" href="{{url_for('static',filename='css/bootstrap.min.css')}}" />
+    <style>
+        body { background-color: #f7f7f7; padding: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        .info-row { margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .info-label { font-weight: bold; color: #666; display: block; font-size: 12px; }
+        .info-value { font-size: 16px; color: #333; }
+        .form-group { margin-bottom: 20px; }
+        .btn-submit { width: 100%; padding: 12px; font-size: 18px; font-weight: bold; }
+        .header { text-align: center; margin-bottom: 20px; color: #2E363F; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h3>生产进度上报</h3>
+    </div>
+
+    <div class="card">
+        <h5 style="margin-top:0; border-bottom: 2px solid #28b779; padding-bottom: 10px;">生产任务详情</h5>
+        <div class="info-row">
+            <span class="info-label">任务编码 / 生产项ID</span>
+            <span class="info-value">{{ task.taskcode }} / {{ pitem.itemid }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">物料信息</span>
+            <span class="info-value">{{ pitem.materialcode }} <br> <small>{{ material.materialdesc }}</small></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">所属工序</span>
+            <span class="info-value">{{ sequence.sequencename }}</span>
+        </div>
+        <div class="info-row" style="border-bottom: none;">
+            <span class="info-label">任务总需 / 已完成</span>
+            <span class="info-value text-info">{{ pitem.quantity }} / {{ pitem.completed }}</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <form id="reportForm">
+            <input type="hidden" id="itemid" value="{{ pitem.itemid }}">
+            
+            <div class="form-group">
+                <label for="username">报产人员</label>
+                <select class="form-control input-lg" id="username" required>
+                    <option value="">-- 请选择报产人 --</option>
+                    {% for user in users %}
+                    <option value="{{ user.username }}">{{ user.username }} - {{ user.realname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="quantity">本次完成数量 (实际产量)</label>
+                <input type="number" class="form-control input-lg" id="quantity" placeholder="请输入实际产出数量" step="0.01" required>
+            </div>
+
+            <!-- 新增：损耗勾选项 -->
+            <div class="form-group">
+                <div class="checkbox">
+                    <label style="font-size: 16px; color: #d9534f;">
+                        <input type="checkbox" id="has_loss"> 生产过程若存在损耗请勾选此项
+                    </label>
+                </div>
+            </div>
+
+            <!-- 新增：计划生产数量（默认隐藏） -->
+            <div class="form-group" id="planned-group" style="display: none;">
+                <label for="planned_quantity">计划生产数量</label>
+                <input type="number" class="form-control input-lg" id="planned_quantity" placeholder="请输入计划产量" step="0.01">
+            </div>
+
+            <button type="button" id="btn-submit" class="btn btn-success btn-submit">上报生产进度</button>
+        </form>
+    </div>
+
+    <script src="{{url_for('static',filename='js/jquery.min.js')}}"></script>
+    <script src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script>
+    <script>
+        $(document).ready(function() {
+            // 监听 Checkbox 变化
+            $("#has_loss").change(function() {
+                if(this.checked) {
+                    $("#planned-group").slideDown();
+                } else {
+                    $("#planned-group").slideUp();
+                    $("#planned_quantity").val(""); // 清空
+                }
+            });
+
+            $("#btn-submit").click(function() {
+                var itemid = $("#itemid").val();
+                var username = $("#username").val();
+                
+                // 获取实际产量
+                var real_quantity = $("#quantity").val();
+                var has_loss = $("#has_loss").is(":checked");
+                var planned_quantity = "";
+
+                if (!username) {
+                    alert("请选择报产人员！");
+                    return;
+                }
+                
+                // 校验实际产量
+                if (!real_quantity || parseFloat(real_quantity) <= 0) {
+                    alert("请输入有效的实际完成数量！");
+                    return;
+                }
+
+                // 核心逻辑：确定计划产量
+                if (has_loss) {
+                    planned_quantity = $("#planned_quantity").val();
+                    if (!planned_quantity || parseFloat(planned_quantity) <= 0) {
+                        alert("勾选了损耗项，必须填写有效的计划生产数量！");
+                        return;
+                    }
+                    if (parseFloat(planned_quantity) < parseFloat(real_quantity)) {
+                        alert("计划产量不能小于实际产量！");
+                        return;
+                    }
+                } else {
+                    // 无损耗，计划 = 实际
+                    planned_quantity = real_quantity;
+                }
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).text('校验库存中...');
+
+                $.ajax({
+                    url: "{{ url_for('taskmodule.submit_report') }}",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        itemid: itemid,
+                        username: username,
+                        real_quantity: real_quantity,       // 实际产量
+                        planned_quantity: planned_quantity  // 计划产量（用于扣库存）
+                    }),
+                    success: function(res) {
+                        if (res.code === 200) {
+                            alert(res.msg);
+                            // 成功后关闭窗口 (微信等Webview中有效，普通浏览器可能阻止) 或 刷新页面清空
+                            if(typeof WeixinJSBridge !== 'undefined') {
+                                WeixinJSBridge.call('closeWindow'); 
+                            } else {
+                                window.close(); 
+                                window.location.reload(); 
+                            }
+                        } else {
+                            alert(res.msg);
+                            $btn.prop('disabled', false).text('上报生产进度');
+                        }
+                    },
+                    error: function(xhr) {
+                        alert("网络错误或服务器异常");
+                        $btn.prop('disabled', false).text('上报生产进度');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

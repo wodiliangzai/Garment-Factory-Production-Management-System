@@ -9,6 +9,7 @@ from decorators import login_required,admin_required
 
 customer_bp=Blueprint('customer',__name__,url_prefix='/customer')
 
+#查找EXCEL元素函数
 def find_excel_value(ws, target_labels):
     if isinstance(target_labels, str):
         target_labels = [target_labels]
@@ -25,6 +26,7 @@ def find_excel_value(ws, target_labels):
                         return target_cell.value
     return None
 
+#客户订单管理界面
 @customer_bp.route('/somanage')
 @login_required
 @admin_required
@@ -32,6 +34,7 @@ def somanage():
     soheaders = SOHeaderModel.query.all()
     return render_template('somanage.html',soheaders=soheaders)
 
+#客户订单详情界面
 @customer_bp.route('/soinfo/<string:orderid>')
 @login_required
 @admin_required
@@ -43,6 +46,7 @@ def soinfo(orderid):
 
     return render_template('soinfo.html', soheader=soheader)
 
+#导入客户订单
 @customer_bp.route('/import_so', methods=['POST'])
 @login_required
 @admin_required

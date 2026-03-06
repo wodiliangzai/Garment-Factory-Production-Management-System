@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>{% block title %}基础样板1{% endblock %}</title>
+<title>{% block title %}基础样板{% endblock %}</title>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="{{url_for('static',filename='css/bootstrap.min.css')}}" />
@@ -14,15 +14,11 @@
 </head>
 <body>
 
-<!--Header-part-->
 <div id="header">
   <img src="{{url_for('static',filename='img/clothes-hanger.png')}}" alt="image" class="main__bg">
   <h2>一帆制衣</h2>
 </div>
-<!--close-Header-part--> 
 
-
-<!--top-Header-menu-->
 <div id="user-nav" class="navbar navbar-inverse">
   <ul class="nav">
     <li  class="dropdown" id="profile-messages" ><a title="" href="#" data-toggle="dropdown" data-target="#profile-messages" class="dropdown-toggle"><i class="icon icon-user"></i>  <span class="text">个人信息</span><b class="caret"></b></a>
@@ -30,33 +26,11 @@
         <li><a href="#"><i class="icon-user"></i> 信息修改</a></li>
         <li class="divider"></li>
         <li><a href="#"><i class="icon-check"></i> 更改密码</a></li>
-        <li class="divider"></li>
-        <li><a href="#"><i class="icon-key"></i> 切换角色</a></li>
       </ul>
     </li>
-    <li class="dropdown" id="menu-messages"><a href="#" data-toggle="dropdown" data-target="#menu-messages" class="dropdown-toggle"><i class="icon icon-envelope"></i> <span class="text">Messages</span> <span class="label label-important">5</span> <b class="caret"></b></a>
-      <ul class="dropdown-menu">
-        <li><a class="sAdd" title="" href="#"><i class="icon-plus"></i> new message</a></li>
-        <li class="divider"></li>
-        <li><a class="sInbox" title="" href="#"><i class="icon-envelope"></i> inbox</a></li>
-        <li class="divider"></li>
-        <li><a class="sOutbox" title="" href="#"><i class="icon-arrow-up"></i> outbox</a></li>
-        <li class="divider"></li>
-        <li><a class="sTrash" title="" href="#"><i class="icon-trash"></i> trash</a></li>
-      </ul>
-    </li>
-    <li class=""><a title="" href="#"><i class="icon icon-cog"></i> <span class="text">个人信息</span></a></li>
     <li class=""><a title="" href="/user/logout"><i class="icon icon-share-alt"></i> <span class="text">退出登录</span></a></li>
   </ul>
 </div>
-<!--close-top-Header-menu-->
-<!--start-top-serch-->
-<!-- <div id="search">
-  <input type="text" placeholder="Search here..."/>
-  <button type="submit" class="tip-bottom" title="Search"><i class="icon-search icon-white"></i></button>
-</div> -->
-<!--close-top-serch-->
-<!--sidebar-menu-->
 <div id="sidebar"><a href="#" class="visible-phone"><i class="icon icon-home"></i> Dashboard</a>
   <ul>
     {% if session['charactercode'] == 'GAdmin' %}
@@ -96,35 +70,28 @@
     {% if session['charactercode'] == 'GAdmin' %}
     <li><a href="/customer/somanage"><i class="icon-edit"></i> <span>客单管理</span></a></li>
     {% endif %}
-    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产任务</span> <span class="label label-important">4</span></a>
+    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产管理</span> <span class="label label-important">4</span></a>
       <ul>
         <li><a href="/product/processmanage"><i class="icon-sitemap"></i> 生产工艺</a></li>
         {% if session['charactercode'] == 'GAdmin' %}
-        <li><a href="/product/taskmanage"><i class="icon-tasks"></i> 任务列表</a></li>
-        <li><a href="/product/taskadd"><i class="icon-cogs"></i> 创建任务</a></li>
+        <li><a href="/product/taskmanage"><i class="icon-th-list"></i> 任务管理</a></li>
         {% endif %}
-        <li><a href="#"><i class="icon-volume-up"></i> 生产进度</a></li>
+        <li><a href="/taskmodule/progress"><i class="icon-qrcode"></i> 生产进度</a></li>
+        {% if session['charactercode'] == 'GAdmin' or session['keycode'] == 1 %}
+        <li><a href="/taskmodule/reportingreview"><i class="icon-check-empty"></i> 报产记录审核</a></li>
+        {% endif %}
       </ul>
     </li>
   </ul>
 </div>
-<!--sidebar-menu-->
 
-<!--main-container-part-->
 <div id="content">
-<!--breadcrumbs-->
     {% block body %}{% endblock %}
 </div>
-
-<!--end-main-container-part-->
-
-<!--Footer-part-->
 
 <div class="row-fluid">
   <div id="footer" class="span12"> 2025 &copy; 一帆风顺制衣有限公司</div>
 </div>
-
-<!--end-Footer-part-->
 
 <script src="{{url_for('static',filename='js/jquery.min.js')}}"></script> 
 <script src="{{url_for('static',filename='js/bootstrap.min.js')}}"></script> 

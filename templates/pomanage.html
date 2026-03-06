@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.pomanage')}}" class="current">采购订单</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.pomanage')}}" class="current"><i class="icon-ok-sign"></i> 采购订单</a> </div>
     <h1>采购订单管理</h1>
 </div>
 <div class="container-fluid">
@@ -22,7 +22,7 @@
                     <h5>下达操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    <a href="javascript:void(0);" id="btn-place-order" class="btn btn-success">下单</a> <a href="#" class="btn btn-warning">导出</a> <a href="#" class="btn btn-info">刷新</a>
+                    <a href="javascript:void(0);" id="btn-place-order" class="btn btn-success"><i class="icon-circle-arrow-down"></i> 下单</a> <a href="#" class="btn btn-warning"><i class="icon-paste"></i> 导出</a> <a href="{{ url_for('procurement.pomanage')}}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
                 </div>
             </div>
             <div class="widget-box">
@@ -70,7 +70,7 @@
                                 </td>
                                 <td>{{poheader.applycode}}</td>                   
                                 <td>
-                                <span> <a href="{{ url_for('procurement.podetails', po_code=poheader.pocode) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                <span> <a href="{{ url_for('procurement.podetails', po_code=poheader.pocode) }}" class="btn btn-primary btn-mini"><i class="icon-info-sign"></i> 详情</a> </span>
                                 </td>
                             </tr>
                             {% endfor %}

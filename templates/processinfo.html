@@ -12,7 +12,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}">生产工艺</a> <a href="#" class="current">工艺信息</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}"><i class="icon-sitemap"></i> 生产工艺</a> <a href="{{ url_for('product.processinfo', craft_id=craft_id) }}" class="current"><i class="icon-info-sign"></i> 工艺信息</a> </div>
     <h1>生产工艺信息</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -76,8 +76,10 @@
                         </div>
 
                         <div class="form-actions">
-                            {{craftform.submit(value='修改工艺信息',class='btn btn-success')}}
-                            <button type="button" id="btn-delete-craft" class="btn btn-danger">删除工艺信息</button>
+                            {% if craft.usagestatus=='未使用' %}
+                                {{craftform.submit(value='修改工艺信息',class='btn btn-success')}}
+                                <button type="button" id="btn-delete-craft" class="btn btn-danger">删除工艺信息</button>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -91,7 +93,7 @@
                 <div class="widget-title"> <span class="icon"> <i class="icon-list"></i> </span>
                     <h5>工艺配方</h5>
                     <div class="buttons-right">
-                        {% if session['charactercode'] == 'GAdmin' %} <a id="btn-add-recipe" class="btn btn-primary btn-mini btn-spacing" href="javascript:void(0);" style="margin-top: 9px; height: 18px;"><i class="icon-plus"></i> 添加配方</a> {% endif %}
+                        {% if session['charactercode'] == 'GAdmin' and craft.usagestatus=='未使用' %} <a id="btn-add-recipe" class="btn btn-primary btn-mini btn-spacing" href="javascript:void(0);" style="margin-top: 9px; height: 18px;"><i class="icon-plus"></i> 添加配方</a> {% endif %}
                         <span id="toggle-all-btn" class="label label-info btn-toggle-tree">全部收缩</span>
                     </div>
                 </div>
@@ -104,7 +106,7 @@
                                 <th style="width: 20%;">物料描述</th>
                                 <th style="width: 20%;">规格型号</th>
                                 <th style="width: 10%;">组件用量</th>
-                                {% if session['charactercode'] == 'GAdmin' %}
+                                {% if session['charactercode'] == 'GAdmin' and craft.usagestatus=='未使用' %}
                                 <th style="width: 10%;">操作</th>
                                 {% endif %}
                             </tr>
@@ -117,10 +119,10 @@
                                 <td class="row-desc">{{ node.desc }}</td>
                                 <td class="row-spec">{{ node.spec }}</td>
                                 <td class="row-qty">{{ node.qty }}</td>
-                                {% if session['charactercode'] == 'GAdmin' %}
+                                {% if session['charactercode'] == 'GAdmin' and craft.usagestatus=='未使用' %}
                                 <td>
-                                    <a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit">编辑</a>
-                                    <a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 2px;">删除</a>
+                                    <a href="javascript:void(0);" class="btn btn-primary btn-mini btn-row-edit"><i class="icon-pencil"></i> 编辑</a>
+                                    <a href="javascript:void(0);" class="btn btn-danger btn-mini btn-row-delete" style="margin-left: 2px;"><i class="icon-trash"></i> 删除</a>
                                 </td>
                                 {% endif %}
                             </tr>

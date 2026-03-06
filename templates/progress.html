@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}物料信息管理{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/product.css')}}" />
+<style>
+    .progress-box {
+      position: relative;
+      z-index: 1;
+      color: #000;
+      padding: 5px 10px;         
+      font-size: 18px;           
+      display: block;            
+      margin: 2px;               
+      line-height: normal;       
+      overflow: hidden;         
+      border: 1px solid #ddd; 
+  }
+
+  .progress-bar-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background-color: #81c784;
+      z-index: -1;
+      width: 0%;
+      transition: width 1.5s ease-out;
+  }
+
+  .qr-thumbnail {
+      width: 25px;
+      height: 25px;
+      cursor: pointer;
+      transition: transform 0.2s;
+  }
+  .qr-thumbnail:hover {
+      transform: scale(1.5);
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('taskmodule.progress')}}" class="current"><i class="icon-qrcode"></i> 生产进度</a> </div>
+    <h1>生产进度表</h1>
+</div>
+<div class="container-fluid">
+    <hr>
+    <div class="row-fluid">
+        <div class="span12">
+            <div class="widget-box">
+                <div class="widget-title"> <span class="icon"><i class="icon-th"></i></span>
+                    <h5>产项进度</h5>
+                </div>
+                <div class="widget-content nopadding">
+                    <table class="table table-bordered" id="materialTable">
+                        <thead>
+                            <tr>
+                                <th>任务编号</th>
+                                <th>任务编码</th>
+                                <th>任务名称</th>
+                                <th>需产物料编码</th>
+                                <th>需产物料描述</th>
+                                <th>规格型号</th>
+                                <th>所属工序</th>
+                                <th>负责角色</th>
+                                <th>需产数量</th>
+                                <th>完成数量</th>
+                                <th>完工(%)</th>
+                                <th>产项二维码</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>{{item.gtop.taskid}}</td>
+                                <td>{{item.gtop.taskcode}}</td>
+                                <td>{{item.gtop.taskname}}</td>
+                                <td>{{item.materialcode}}</td>
+                                <td>{{item.gmaterial.materialdesc}}</td>
+                                <td>{{item.gmaterial.specification}}</td>
+                                <td>{{item.gsequence.sequencename}}</td>
+                                <td>{{item.gsequence.gcharacter.charactername}}</td>
+                                <td>{{item.quantity}}</td>
+                                <td>{{item.completed}}</td>
+                                <td style="padding: 2px;">
+                                    <div class="progress-box">{{item.completed/item.quantity*100}}</div>
+                                </td>
+                                <td style="text-align: center;">
+                                    <img src="/{{item.itemqr}}" class="qr-thumbnail" alt="QR" title="点击查看大图" />
+                                </td>
+                            </tr>
+                            {% endfor %}             
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="content-header">
+    <h1></h1>
+</div>
+<div id="qrModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="qrModalLabel">产项二维码</h3>
+    </div>
+    <div class="modal-body" style="text-align: center; padding: 30px;">
+        <img id="modalQrImage" src="" alt="QR Code" style="max-width: 100%; height: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.uniform.js')}}"></script> 
+<script src="{{url_for('static',filename='js/select2.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.validate.js')}}"></script>
+<script src="{{url_for('static',filename='js/jquery.dataTables.min.js')}}"></script>
+<script src="{{url_for('static',filename='js/matrix.tables.js')}}"></script>
+<script>
+$(document).ready(function() {
+  $('#materialTable').dataTable({
+    "bJQueryUI": true,
+    "sPaginationType": "full_numbers",
+    "sDom": '<"dt-toolbar-flex dt-top-toolbar"lf><"table-scroll-wrapper"t><"dt-toolbar-flex dt-bottom-toolbar"ip>',
+    "bAutoWidth": false,
+    "aaSorting": [[ 4, "desc" ]],
+    "oLanguage": {
+          "sLengthMenu": "展示 _MENU_ 页",
+          "sZeroRecords": "没有正在进行的生产任务",
+          "sInfo": "显示第 _START_ 至 _END_ 项结果，共 _TOTAL_ 项",
+          "sInfoEmpty": "显示第 0 至 0 项结果，共 0 项",
+          "sInfoFiltered": "(由 _MAX_ 项结果过滤)",
+          "sSearch": "搜索：",
+          "oPaginate": {
+              "sFirst": "首页",
+              "sPrevious": "上一页",
+              "sNext": "下一页",
+              "sLast": "尾页"
+          }
+    }
+  });
+
+  $('select').select2();
+  var $modalSelect = $('#editRoleModal select');
+  if ($modalSelect.length > 0) {
+      var s2Instance = $modalSelect.data('select2');
+      if (s2Instance) {
+          s2Instance.body = function() {
+              return $('#editRoleModal');
+          };
+      }
+  }
+
+  $(document).on('click', '.qr-thumbnail', function() {
+      // 1. 获取当前点击的小图的 src
+      var src = $(this).attr('src');
+      
+      // 2. 将 src 赋值给弹窗里的大图
+      $('#modalQrImage').attr('src', src);
+      
+      // 3. 显示弹窗 (Bootstrap 2 写法)
+      $('#qrModal').modal('show');
+  });
+
+  setTimeout(function() {
+      $('.progress-box').each(function() {
+          var $box = $(this);
+          var value = parseFloat($box.text()); // 获取文本中的数值，例如 "65.5"
+          
+          // 限制最大100，最小0
+          if (value > 100) value = 100;
+          if (value < 0) value = 0;
+
+          // 创建背景条元素
+          var $bg = $('<div class="progress-bar-bg"></div>');
+          $box.prepend($bg);
+
+          // 稍微延迟一点点设置宽度，触发CSS transition动画
+          setTimeout(function() {
+              $bg.css('width', value + '%');
+          }, 100);
+      });
+  }, 100);
+});
+</script>
+{% endblock %}

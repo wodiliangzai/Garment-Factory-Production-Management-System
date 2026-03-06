@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="Go to Home" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}" class="current">生产工艺</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.processmanage')}}" class="current"><i class="icon-sitemap"></i> 生产工艺</a> </div>
     <h1>生产工艺管理</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -62,7 +62,7 @@
                                 <td>{{ craft.altertime }}</td>
                                 <td>{{ craft.alteruser }}</td>
                                 <td>
-                                    <span> <a href="{{ url_for('product.processinfo', craft_id=craft.craftid) }}" class="btn btn-primary btn-mini">详情</a> </span>
+                                    <span> <a href="{{ url_for('product.processinfo', craft_id=craft.craftid) }}" class="btn btn-primary btn-mini"><i class="icon-info-sign"></i> 详情</a> </span>
                                 </td>
                             </tr>
                             {% endfor %}
