@@ -131,6 +131,16 @@
     <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('procurement.prmanage') }}" class="current"><i class="icon-ok-circle"></i> 采购申请</a> </div>
     <h1>采购申请管理</h1>
 </div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
 <div class="container-fluid">
     <hr>
     <div class="row-fluid">
@@ -140,7 +150,13 @@
                     <h5>申请操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    <a href="{{ url_for('procurement.pradd') }}" class="btn btn-success"><i class="icon-plus"></i> 新建</a> <a href="#" class="btn btn-warning"><i class="icon-paste"></i> 导出</a> <a href="{{ url_for('procurement.prmanage') }}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
+                    <a href="{{ url_for('procurement.pradd') }}" class="btn btn-success"><i class="icon-plus"></i> 新建采购申请</a><form id="importForm" action="{{ url_for('procurement.import_pr') }}" method="post" enctype="multipart/form-data" style="display:inline;">
+                        <div style="display:none;"> 
+                            <input type="file" name="file" id="fileInput" accept=".xlsx, .xls" onchange="document.getElementById('importForm').submit();">
+                        </div>
+                        <a href="#" class="btn btn-primary" onclick="document.getElementById('fileInput').click(); return false;"><i class="icon-folder-open"></i> 导入采购申请</a>
+                    </form>
+                    <a href="{{ url_for('static', filename='files/采购申请单模版.xlsx') }}" class="btn btn-warning"><i class="icon-download-alt"></i> 下载导入模板</a> <a href="{{ url_for('procurement.prmanage') }}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a></div>
                 </div>
             </div>
             <div class="widget-box">

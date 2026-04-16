@@ -12,6 +12,7 @@ gen = SnowflakeGenerator(1)
 
 product_bp=Blueprint('product',__name__,url_prefix='/product')
 
+#查找配方组件函数
 def get_formula_tree_recursive(craft_id, tree_list, visited_crafts=None, parent_unique_id=None):
     """
     craft_id: 当前正在查找的工艺ID
@@ -127,7 +128,7 @@ def create_pitem_recursive(task_id, material_code, required_qty):
             # 递归调用：继续为子件查找工艺并生成生产项
             create_pitem_recursive(task_id, formula.component, child_qty)
 
-
+#物料信息管理界面
 @product_bp.route('/materialmanage')
 @login_required
 def materialmanage():
@@ -136,6 +137,7 @@ def materialmanage():
     altermaterialform=AltermaterialForm()
     return render_template('materialmanage.html',materials=materials,addmaterialform=addmaterialform,altermaterialform=altermaterialform)
 
+#添加物料信息
 @product_bp.post('/addmaterial')
 @login_required
 @admin_required
@@ -168,7 +170,8 @@ def addmaterial():
                 error_msgs.append(f"{error}")
         flash("物料添加失败："+ "; ".join(error_msgs), "error")
         return redirect(url_for('product.materialmanage'))
-    
+
+#修改物料信息    
 @product_bp.post('/altermaterial/<string:role_code>')
 @login_required
 @admin_required
@@ -193,7 +196,8 @@ def altermaterial(role_code):
             for error in errors:
                 error_msgs.append(f"{error}")
         return jsonify({"code": 400, "msg": "; ".join(error_msgs)})
-    
+
+#生产工艺管理界面    
 @product_bp.route('/processmanage')
 @login_required
 def processmanage():
@@ -204,6 +208,7 @@ def processmanage():
     crafts = CraftModel.query.all()
     return render_template('processmanage.html',crafts=crafts, addcraftform=addcraftform)
 
+#添加生产工艺信息
 @product_bp.post('/addcraft')
 @login_required
 @admin_required
@@ -260,6 +265,7 @@ def addcraft():
         flash("验证失败：" + "; ".join(error_msgs), "error")
         return redirect(url_for('product.processmanage'))
 
+#生产工艺信息界面
 @product_bp.route('/processinfo/<string:craft_id>')
 @login_required
 def processinfo(craft_id):
@@ -297,6 +303,7 @@ def processinfo(craft_id):
     ], ensure_ascii=False)
     return render_template('processinfo.html', craft=craft,craft_id=craft_id, craftform=craftform, recipe_tree=recipe_tree,materials_json=materials_json)
 
+#修改生产工艺信息
 @product_bp.post('/updatecraft/<string:craft_id>')
 @login_required
 @admin_required
@@ -334,6 +341,7 @@ def updatecraft(craft_id):
     # 修改完成后重定向回详情页
     return redirect(url_for('product.processinfo', craft_id=craft_id))
 
+#删除生产工艺信息
 @product_bp.route('/deletecraft/<string:craft_id>')
 @login_required
 @admin_required
@@ -355,6 +363,7 @@ def deletecraft(craft_id):
 
     return redirect(url_for('product.processmanage'))
 
+#更新工艺配方信息(修改/添加)
 @product_bp.post('/formula_update')
 @login_required
 @admin_required
@@ -434,7 +443,7 @@ def formula_update():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
 
-# 删除配方行
+# 删除工艺配方信息
 @product_bp.post('/formula_delete')
 @login_required
 @admin_required
@@ -457,7 +466,8 @@ def formula_delete():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
-    
+
+#生产任务创建界面    
 @product_bp.route('/taskadd')
 @login_required
 @admin_required
@@ -474,6 +484,7 @@ def taskadd():
     ], ensure_ascii=False)
     return render_template('taskadd.html',form=form,materials_json=materials_json)
 
+#创建生产任务操作
 @product_bp.post('/addtask')
 @login_required
 @admin_required
@@ -496,6 +507,10 @@ def addtask():
                 finish_time = datetime.strptime(endtime_str, '%m/%d/%Y')
             except ValueError:
                 flash("日期格式错误，请使用 mm/dd/yyyy", "error")
+                return redirect(url_for('product.taskadd'))
+            
+            if finish_time.replace(hour=0, minute=0, second=0, microsecond=0) <= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0):
+                flash("计划完成日期不能早于或等于今天", "error")
                 return redirect(url_for('product.taskadd'))
 
             # 2. 获取表格数据 (JSON)
@@ -559,7 +574,8 @@ def addtask():
                 error_msgs.append(f"{error}")
         flash("验证失败：" + "; ".join(error_msgs), "error")
         return redirect(url_for('product.taskadd'))
-    
+
+#任务管理界面    
 @product_bp.route('/taskmanage')
 @login_required
 @admin_required
@@ -567,6 +583,7 @@ def taskmanage():
     tasks = TOPModel.query.all()
     return render_template('taskmanage.html',tasks=tasks)
 
+#生产任务详情界面
 @product_bp.route('/taskinfo/<string:task_code>')
 @login_required
 @admin_required
@@ -597,6 +614,7 @@ def taskinfo(task_code):
     initialItems = TOPModel.query.filter_by(taskcode=task_code).all()
     return render_template('taskinfo.html', task=task,form=form,materials_json=materials_json,initialItems=initialItems)
 
+#修改生产任务操作
 @product_bp.post('/altertask')
 @login_required
 @admin_required
@@ -620,6 +638,9 @@ def altertask():
                 finish_time = datetime.strptime(endtime_str, '%m/%d/%Y')
             except ValueError:
                 finish_time = datetime.strptime(endtime_str, '%Y-%m-%d')
+
+            if finish_time.replace(hour=0, minute=0, second=0, microsecond=0) <= datetime.now().replace(hour=0, minute=0, second=0, microsecond=0):
+                raise Exception("修改失败：计划完成日期不能早于或等于今天")
             
             items_list = json.loads(items_json) if items_json else []
 
@@ -710,7 +731,7 @@ def altertask():
         flash(f"验证失败：{form.errors}", "error")
         return redirect(url_for('product.taskmanage'))
 
-
+#删除生产任务操作
 @product_bp.route('/deletetask/<string:task_code>')
 @login_required
 @admin_required
@@ -736,7 +757,8 @@ def deletetask(task_code):
         db.session.rollback()
         flash(f"删除失败: {str(e)}", "error")
         return redirect(url_for('product.taskinfo', task_code=task_code))
-    
+
+# 获取任务单的生产项列表（AJAX）    
 @product_bp.route('/get_task_items/<string:task_id>')
 @login_required
 @admin_required
@@ -758,11 +780,11 @@ def get_task_items(task_id):
         })
     return jsonify({'code': 200, 'data': items_data})
 
+#更新生产项数量
 @product_bp.post('/update_task_item')
 @login_required
 @admin_required
 def update_task_item():
-    """AJAX 更新生产项数量"""
     try:
         data = request.json
         item_id = data.get('itemid')
@@ -786,11 +808,11 @@ def update_task_item():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': str(e)})
 
+#删除生产项
 @product_bp.post('/delete_task_item')
 @login_required
 @admin_required
 def delete_task_item():
-    """AJAX 删除生产项"""
     try:
         data = request.json
         item_id = data.get('itemid')

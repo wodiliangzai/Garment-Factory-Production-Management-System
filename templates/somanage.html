@@ -82,7 +82,7 @@
                                 <td>
                                 <span> <a href="{{ url_for('customer.soinfo', orderid=soheader.orderid) }}" class="btn btn-primary btn-mini"><i class="icon-info-sign"></i> 详情</a> </span>
                                 {% if soheader.orderstatus != '已交付' %}
-                                <span> <a href="#" class="btn btn-danger btn-mini btn-row-delete"><i class="icon-road"></i> 交付</a> </span>
+                                <span> <a href="#" class="btn btn-danger btn-mini btn-row-delete" onclick="deliverOrder('{{ soheader.orderid }}'); return false;"><i class="icon-road"></i> 交付</a> </span>
                                 {% endif %}
                                 </td>
                             </tr>
@@ -135,5 +135,26 @@ $(document).ready(function() {
   // 修复 Select2 在 DataTables 中的显示宽度问题
   $('select').select2();
 });
+function deliverOrder(orderid) {
+    if (confirm("是否确定要交付客户订单编号为：" + orderid + " 的订单？")) {
+        $.ajax({
+            url: "{{ url_for('customer.deliver_so') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 'orderid': orderid }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert(response.msg);
+                    window.location.reload(); // 成功后刷新页面
+                } else {
+                    alert(response.msg);
+                }
+            },
+            error: function() {
+                alert("网络请求失败，请稍后重试！");
+            }
+        });
+    }
+}
 </script>
 {% endblock %}

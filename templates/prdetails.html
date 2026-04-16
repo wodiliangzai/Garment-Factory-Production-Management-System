@@ -80,7 +80,9 @@
                                 </tbody>
                             </table>
                             <div class="pull-right">
-                                <a id="btn-submit-application" class="btn btn-primary btn-large pull-right" style="margin-right: 20px;" href="{{ url_for('procurement.preview') }}">返回</a>
+                                <a class="btn btn-primary btn-large pull-right" style="margin-right: 20px;" href="{{ url_for('procurement.preview') }}">返回</a>
+                                <a id="btnReject" class="btn btn-warning btn-large pull-right" style="margin-right: 20px;" href="#" data-id="{{ prheader.prcode }}">驳回</a>
+                                <a id="btnApprove" class="btn btn-success btn-large pull-right" style="margin-right: 20px;" href="#" data-id="{{ prheader.prcode }}">审核</a>
                             </div>
                         </div>
                     </div>
@@ -89,8 +91,124 @@
         </div>
     </div>
 </div>
+<div id="rejectModal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="myModalLabel">输入驳回理由</h3>
+    </div>
+    <div class="modal-body">
+        <div class="row-fluid">
+            <div class="span12">
+                <textarea id="rejectReason" class="span11" placeholder="请在此输入驳回的详细理由..." rows="5" style="margin-left: 15px; resize: vertical; min-height: 100px;"></textarea>
+                <div style="margin-left: 15px;">
+                    <span id="rejectReasonError" style="color: #b94a48; display: none; margin-top: 5px;">请填写驳回理由！</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">取消</button>
+        <button class="btn btn-danger" id="btnConfirmReject">确定</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block script %}
 <script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script>
+$(document).ready(function() {
+    var currentPrCode = "{{ prheader.prcode }}";
+
+    // -----------------------------------------
+    // 1. 单点审核功能
+    // -----------------------------------------
+    $('#btnApprove').click(function(e) {
+        e.preventDefault();
+
+        if (!confirm('确认审核该采购申请（单号：' + currentPrCode + '）？\n审核通过将自动生成对应的采购订单。')) {
+            return;
+        }
+
+        $.ajax({
+            url: "{{ url_for('procurement.pr_approve') }}",
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify({ prcodes: [currentPrCode] }),
+            success: function(res) {
+                if (res && res.code === 200) {
+                    alert(res.msg || '单据审核成功！');
+                    window.location.href = "{{ url_for('procurement.preview') }}"; // 跳转回到待审核列表
+                } else {
+                    alert((res && res.msg) ? res.msg : '审核失败');
+                }
+            },
+            error: function(xhr) {
+                alert('请求失败：' + (xhr.responseText || xhr.status));
+            }
+        });
+    });
+
+    // -----------------------------------------
+    // 2. 单点驳回功能（弹窗）
+    // -----------------------------------------
+    $('#btnReject').click(function(e) {
+        e.preventDefault();
+
+        // 每次打开清空原本的内容和错误提示
+        $('#rejectReason').val('');
+        $('#rejectReasonError').hide();
+
+        // 展示弹窗
+        $('#rejectModal').modal('show');
+    });
+
+    var jumpAfterClose = false;
+
+    // 点击确定驳回请求
+    $('#btnConfirmReject').click(function() {
+        var reason = $('#rejectReason').val();
+
+        // 简单校验其非空属性
+        if ($.trim(reason) === "") {
+            $('#rejectReasonError').show();
+            $('#rejectReason').focus();
+        } else {
+            $('#rejectReasonError').hide();
+            
+            $.ajax({
+                url: "{{ url_for('procurement.pr_reject') }}",
+                type: 'POST',
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json',
+                data: JSON.stringify({ 
+                    prcodes: [currentPrCode],
+                    opinion: reason 
+                }),
+                success: function(res) {
+                    if (res && res.code === 200) {
+                        alert(res.msg || '驳回成功');
+                        jumpAfterClose = true;
+                        $('#rejectModal').modal('hide'); // 先关闭弹窗
+                    } else {
+                        alert((res && res.msg) ? res.msg : '驳回失败');
+                    }
+                },
+                error: function(xhr) {
+                    alert('请求失败：' + (xhr.responseText || xhr.status));
+                }
+            });
+        }
+    });
+
+    // 弹窗完全关闭后再执行短暂停顿跳转以营造平滑感
+    $('#rejectModal').on('hidden', function () {
+        if (jumpAfterClose) {
+            setTimeout(function() {
+                window.location.href = "{{ url_for('procurement.preview') }}";
+            }, 500);
+        }
+    });
+});
+</script>
 {% endblock %}

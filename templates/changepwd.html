@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}更改密码{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{url_for('static',filename='css/uniform.css')}}" />
+<link rel="stylesheet" href="{{url_for('static',filename='css/select2.css')}}" />
+{% endblock %}
+
+{% block body %}
+<div id="content-header">
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('user.changepwd')}}" class="current"><i class="icon-lock"></i> 更改密码</a> </div>
+    <h1>更改密码</h1>
+</div>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert {% if category == 'success' %}alert-success{% elif category == 'error' %}alert-danger{% else %}alert-info{% endif %} fade in">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<div class="container-fluid"><hr>
+    <div class="row-fluid">
+      <div class="span12">
+        <div class="widget-box">
+          <div class="widget-title"> <span class="icon"> <i class="icon-pencil"></i> </span>
+            <h5>更改密码</h5>
+          </div>
+          <div class="widget-content nopadding">
+            <form id="form-wizard" class="form-horizontal" method="post" action="{{ url_for('user.changepwd') }}">
+                <!-- 必须渲染 hidden_tag 以支持 CSRF 防护 -->
+                {{ form.hidden_tag() }}
+                <div id="form-wizard-1" class="step">
+                <div class="control-group">
+                    <label class="control-label">{{ form.username.label }}</label>
+                    <div class="controls">
+                    {{ form.username() }}
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">{{ form.old_password.label }}</label>
+                    <div class="controls">
+                    {{ form.old_password() }}
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">{{ form.new_password.label }}</label>
+                    <div class="controls">
+                    {{ form.new_password() }}
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">{{ form.confirm_password.label }}</label>
+                    <div class="controls">
+                    {{ form.confirm_password() }}
+                    </div>
+                </div>
+                </div>
+                <div class="form-actions">
+                {{ form.submit() }}
+                <div id="status"></div>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+{% endblock %}

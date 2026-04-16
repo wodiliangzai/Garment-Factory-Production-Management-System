@@ -62,7 +62,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="#" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.taskmanage')}}"><i class="icon-th-list"></i> 生产任务列表</a> <a href="{{ url_for('product.taskinfo', task_code=task.taskcode) }}" class="current"><i class="icon-info-sign"></i> 任务详情</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.taskmanage')}}"><i class="icon-th-list"></i> 任务管理</a> <a href="{{ url_for('product.taskinfo', task_code=task.taskcode) }}" class="current"><i class="icon-info-sign"></i> 任务详情</a> </div>
     <h1>生产任务详情</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -120,6 +120,9 @@
                             {% if task.taskstatus =='新建' %}
                                 {{ form.submit(class='btn btn-success') }}
                                 <button type="button" id="btn-add-item" class="btn btn-info pull-right"><i class="icon-plus"></i> 新增任务单</button>
+                            {% endif %}
+                            {% if task.taskstatus =='进行中' %}
+                                <a href="#" class="btn btn-danger pull-right" id="btn-terminate-task"><i class="icon-minus"></i> 终止任务</a>
                             {% endif %}
                             <input type="button" value="返回" class="btn btn-primary" onclick="window.history.back();">
                         </div>
@@ -186,7 +189,23 @@
 <script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
 <script src="{{url_for('static',filename='js/bootstrap-datepicker.js')}}"></script>
 <script type="text/javascript">
-  $('.datepicker').datepicker();
+  var tomorrow = new Date();
+  tomorrow.setHours(0, 0, 0, 0); 
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // 2. 初始化 Datepicker
+  $('.datepicker').datepicker().on('changeDate', function(ev) {
+      // 3. 拦截：如果选中的日期小于明天，则抛出警告
+      if (ev.date.valueOf() < tomorrow.valueOf()) {
+          alert('不允许选择今天及以前的日期，已自动重置！');
+          
+          // 强行将非法选择重置为明天的日期
+          $(this).datepicker('setValue', tomorrow);
+          
+          // 可选：选中后自动关闭日历面板
+          // $(this).datepicker('hide'); 
+      }
+  });
 
   $(document).ready(function() {
       // 获取物料数据供 Select2 使用
@@ -441,6 +460,64 @@
               window.location.href = "{{ url_for('product.deletetask', task_code='') }}" + taskCode;
           }
       });
+      $("#btn-terminate-task").click(function(e) {
+            e.preventDefault();
+            
+            // 获取当页面的任务编码，如果 taskCode 是后端注入变量可以直接拿
+            var taskCode = "{{ task.taskcode }}"; 
+
+            // 第一步：调用检测接口
+            $.ajax({
+                url: "{{ url_for('taskmodule.terminate_task_check') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ taskcode: taskCode }),
+                success: function(res) {
+                    if (res.code === 200) {
+                        if (res.data.is_all_completed) {
+                            // 1. 完全达标：无阻力终止，直接请求
+                            executeTerminateTask(taskCode, false);
+                        } else {
+                            // 2. 有欠缺：弹查逐项提示
+                            var msg = "警告：当前有部分生产项尚未达到要求产量，\n您确认需要【强制终止】吗？\n\n缺少详情：\n";
+                            for (var i = 0; i < res.data.incomplete_items.length; i++) {
+                                var item = res.data.incomplete_items[i];
+                                msg += "• [ " + item.materialdesc + " ] 还有 " + item.shortage + " 件未完成；\n";
+                            }
+                            if (confirm(msg)) {
+                                // 用户强行终止
+                                executeTerminateTask(taskCode, true);
+                            }
+                        }
+                    } else {
+                        alert(res.msg); // 如果有不处于“进行中”的任务等后台报错，直接提示
+                    }
+                },
+                error: function(xhr, status, err) {
+                    alert("系统请求错误: " + err);
+                }
+            });
+        });
+
+        function executeTerminateTask(taskCode, forceFlag) {
+            $.ajax({
+                url: "{{ url_for('taskmodule.terminate_task_execute') }}",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ taskcode: taskCode, force: forceFlag }),
+                success: function(res) {
+                    if (res.code === 200) {
+                        alert(res.msg);
+                        location.reload(); // 状态更新后刷新页面显示最新阶段
+                    } else {
+                        alert(res.msg);
+                    }
+                },
+                error: function(xhr, status, err) {
+                    alert("系统请求错误: " + err);
+                }
+            });
+        }
   });
 </script>
 {% endblock %}

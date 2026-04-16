@@ -100,7 +100,7 @@
                                 <br>
                                 <a class="btn btn-primary btn-large pull-right" href="{{ url_for('customer.somanage')}}">返回</a>
                                 {% if soheader.orderstatus != '已交付' %}
-                                <a class="btn btn-danger btn-large pull-right" style="margin-right: 20px;" href="#">交付</a>
+                                <a class="btn btn-danger btn-large pull-right" style="margin-right: 20px;" href="#" onclick="deliverOrder('{{ soheader.orderid }}'); return false;">交付</a>
                                 {% endif %}
                             </div>
                         </div>
@@ -114,4 +114,27 @@
 
 {% block script %}
 <script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script>
+function deliverOrder(orderid) {
+    if (confirm("是否确定要交付客户订单编号为：" + orderid + " 的订单？")) {
+        $.ajax({
+            url: "{{ url_for('customer.deliver_so') }}",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ 'orderid': orderid }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert(response.msg);
+                    window.location.href = "{{ url_for('customer.somanage') }}"; // 成功后重定向到管理界面
+                } else {
+                    alert(response.msg); // 如缺物料将用 alert 提示
+                }
+            },
+            error: function() {
+                alert("网络请求失败，请稍后重试！");
+            }
+        });
+    }
+}
+</script>
 {% endblock %}

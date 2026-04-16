@@ -54,6 +54,7 @@ class PRHeaderModel(db.Model):
     guser=db.relationship(UserModel,backref='prheaders')
     prsupplier=db.Column(NVARCHAR(50),db.ForeignKey('GSupplier.suppliercode'),nullable=False)
     gsupplier=db.relationship(SupplierModel,backref='prheaders')
+    opinion=db.Column(NVARCHAR(None),nullable=True)
 
 class PRLineModel(db.Model):
     __tablename__='GPRLine' #采购申请行

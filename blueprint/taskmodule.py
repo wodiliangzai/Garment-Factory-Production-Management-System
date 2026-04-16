@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, json, jsonify, redirect, url_for, session, request, render_template_string, flash, current_app
+from flask import Blueprint, render_template, json, jsonify, redirect, url_for, session, request, render_template_string, flash, current_app,Response
 from datetime import datetime
 import string
 import os
 import qrcode
+import io
 from exts import db
 from models import UserModel, CharacterModel, PermissionModel, MaterialModel, WarehouseModel, InventoryModel, SequenceModel, CraftModel, FormulaModel, TOPModel, PItemModel, PReportModel
 from sqlalchemy import text, func
@@ -13,7 +14,29 @@ gen = SnowflakeGenerator(2)
 
 taskmodule_bp = Blueprint('taskmodule', __name__, url_prefix='/taskmodule')
 
-@taskmodule_bp.route('/release_tasks', methods=['POST'])
+# 动态生成二维码图片的路由
+@taskmodule_bp.route('/qrcode/<string:item_id>')
+def generate_qrcode(item_id):
+    """
+    根据当前的服务器 IP 和请求环境，动态生成二维码图片流
+    """
+    # 动态获取当前的完整请求路径
+    report_url = url_for('taskmodule.report_page', item_id=item_id, _external=True)
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(report_url)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color='black', back_color='white')
+    
+    # 将图片写入内存字节流并返回给前端
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    qr_img_bytes = buf.getvalue()
+    
+    return Response(qr_img_bytes, mimetype='image/png')
+
+# 修改：下达任务操作
+@taskmodule_bp.post('/release_tasks')
 @login_required
 @admin_required
 def release_tasks():
@@ -30,16 +53,18 @@ def release_tasks():
         if not tasks:
             return jsonify({'code': 400, 'msg': '未找到符合下达条件的任务'})
 
+        today_midnight = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+
         count_tasks = 0
         count_items = 0
 
-        # 二维码保存路径
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        static_files_dir = os.path.join(base_path, 'static', 'files')
-        if not os.path.exists(static_files_dir):
-            os.makedirs(static_files_dir)
-
         for task in tasks:
+            task_finishtime_midnight = task.finishtime.replace(hour=0, minute=0, second=0, microsecond=0)
+            if task_finishtime_midnight <= today_midnight:
+                return jsonify({
+                    'code': 400, 
+                    'msg': f'阻止下达：任务单编码 {task.taskcode} 的计划完成日期早于或等于今天，请修改后再尝试下达。'
+                })
             # 更新任务状态
             task.taskstatus = '进行中'
             task.altertime = datetime.now()
@@ -55,32 +80,19 @@ def release_tasks():
                     if craft:
                         craft.usagestatus = '使用中'
                 
-                # 4. 生成二维码
-                # 二维码内容为报产页面的URL
-                report_url = url_for('taskmodule.report_page', item_id=item.itemid, _external=True)
-                
-                qr = qrcode.QRCode(version=1, box_size=10, border=5)
-                qr.add_data(report_url)
-                qr.make(fit=True)
-                img = qr.make_image(fill='black', back_color='white')
-                
-                # 文件名：itemid.png
-                filename = f"{item.itemid}.png"
-                file_path = os.path.join(static_files_dir, filename)
-                img.save(file_path)
-
-                # 保存相对路径到数据库 (static/files/xxx.png)
-                # 注意：数据库存的是相对 static 的路径或者 web 访问路径
-                item.itemqr = f"static/files/{filename}"
+                # 4. 记录动态获取二维码的相对接口路径
+                itemqr_path = url_for('taskmodule.generate_qrcode', item_id=item.itemid)
+                item.itemqr = itemqr_path.lstrip('/')
                 count_items += 1
 
         db.session.commit()
-        return jsonify({'code': 200, 'msg': f'下达成功！已更新 {count_tasks} 个任务单，生成 {count_items} 个生产项二维码。'})
+        return jsonify({'code': 200, 'msg': f'下达成功！已更新 {count_tasks} 个任务单，生成了 {count_items} 个生产项二维码记录。'})
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
 
+#上报生产进度界面
 @taskmodule_bp.route('/report_page/<string:item_id>')
 def report_page(item_id):
     """
@@ -114,6 +126,7 @@ def report_page(item_id):
                            sequence=sequence_info,
                            users=users)
 
+#报产操作
 @taskmodule_bp.post('/submit_report')
 def submit_report():
     try:
@@ -223,7 +236,7 @@ def submit_report():
         db.session.rollback()
         return jsonify({'code': 500, 'msg': '系统异常：' + str(e)})
 
-
+#生产进度表界面
 @taskmodule_bp.route('/progress')
 @login_required
 def progress():
@@ -232,7 +245,7 @@ def progress():
         items=items.join(PItemModel.gsequence).filter(SequenceModel.charactercode==session['charactercode'])
     return render_template('progress.html', items=items.all())
 
-
+#报产记录审核界面
 @taskmodule_bp.route('/reportingreview')
 @login_required
 def reportingreview():
@@ -241,6 +254,7 @@ def reportingreview():
         items=items.join(PReportModel.gpitem).join(PItemModel.gsequence).filter(SequenceModel.charactercode==session['charactercode'])
     return render_template('reportingreview.html', items=items.all())
 
+#驳回报产记录
 @taskmodule_bp.post('/reject_report')
 @login_required
 def reject_report():
@@ -316,7 +330,8 @@ def reject_report():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
-    
+
+#审核报产记录    
 @taskmodule_bp.post('/approve_reports')
 @login_required
 def approve_reports():
@@ -343,10 +358,35 @@ def approve_reports():
             pitem = PItemModel.query.filter_by(itemid=report.itemid).first()
             if pitem:
                 # 累加实际产量到生产项的完成数量中
-                # 确保转换为float进行计算，SQLAlchemy会自动处理类型映射
                 current_completed = float(pitem.completed) if pitem.completed else 0.0
                 added_quantity = float(report.realquantity)
                 pitem.completed = current_completed + added_quantity
+
+                # 新增逻辑：根据生产工艺将实际产量添加入库
+                craft = CraftModel.query.filter_by(craftid=pitem.craftid).first()
+                if craft:
+                    target_warehouse = craft.storage
+                    material_code = pitem.materialcode
+                    
+                    # 查询目标仓库中是否已经有该产品的库存记录
+                    inventory = InventoryModel.query.filter_by(
+                        materialcode=material_code, 
+                        warehousecode=target_warehouse
+                    ).first()
+                    
+                    if inventory:
+                        # 如果已经有记录，累加数量
+                        inventory.quantity = float(inventory.quantity) + added_quantity
+                        inventory.altertime = current_time
+                    else:
+                        # 如果没有记录，创建一条新的库存记录
+                        new_inventory = InventoryModel(
+                            materialcode=material_code,
+                            warehousecode=target_warehouse,
+                            quantity=added_quantity,
+                            altertime=current_time
+                        )
+                        db.session.add(new_inventory)
 
             # 2. 更新报产记录状态
             report.reviewstatus = '已审核'
@@ -366,3 +406,132 @@ def approve_reports():
     except Exception as e:
         db.session.rollback()
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
+
+#终止任务操作第一步：判断终止条件    
+@taskmodule_bp.post('/terminate_task_check')
+@login_required
+def terminate_task_check():
+    """
+    检查终止任务的条件，返回是否能够直接完成，还是需要强制结束
+    """
+    try:
+        data = request.json
+        task_code = data.get('taskcode')
+        if not task_code:
+            return jsonify({'code': 400, 'msg': '参数错误：未提供taskcode'})
+
+        # 检查同一 taskcode 的所有任务单状态
+        tasks = TOPModel.query.filter_by(taskcode=task_code).all()
+        if not tasks:
+            return jsonify({'code': 404, 'msg': '该任务编码关联的任务单不存在'})
+
+        for task in tasks:
+            if task.taskstatus != '进行中':
+                return jsonify({'code': 400, 'msg': f'阻止操作：任务单 {task.taskid} 的状态为“{task.taskstatus}”，必须全部为“进行中”才能执行终止操作。'})
+
+        # 检查是否所有 PItem 都已完成所需数量
+        incomplete_items = []
+        for task in tasks:
+            pitems = PItemModel.query.filter_by(taskid=task.taskid).all()
+            for pitem in pitems:
+                completed_qty = float(pitem.completed) if pitem.completed else 0.0
+                required_qty = float(pitem.quantity)
+                
+                if completed_qty < required_qty:
+                    shortage = required_qty - completed_qty
+                    material_desc = pitem.gmaterial.materialdesc if pitem.gmaterial else pitem.materialcode
+                    incomplete_items.append({
+                        'itemid': pitem.itemid,
+                        'materialdesc': material_desc,
+                        'shortage': shortage
+                    })
+
+        is_all_completed = len(incomplete_items) == 0
+        return jsonify({
+            'code': 200,
+            'data': {
+                'is_all_completed': is_all_completed,
+                'incomplete_items': incomplete_items
+            }
+        })
+    except Exception as e:
+        return jsonify({'code': 500, 'msg': f'系统错误：{str(e)}'})
+
+#终止任务操作第二步：执行终止操作 
+@taskmodule_bp.post('/terminate_task_execute')
+@login_required
+def terminate_task_execute():
+    """
+    执行终止任务并连带处理工艺状态
+    """
+    try:
+        data = request.json
+        task_code = data.get('taskcode')
+        force = data.get('force', False)
+        username = session.get('username')
+
+        tasks = TOPModel.query.filter_by(taskcode=task_code).all()
+        if not tasks:
+             return jsonify({'code': 404, 'msg': '任务单不存在'})
+
+        all_craft_ids = set()
+
+        # 收集该条生产线上使用的所有生产工艺 ID
+        for task in tasks:
+            if task.taskstatus != '进行中':
+                 return jsonify({'code': 400, 'msg': '阻止操作：状态发生了改变'})
+            
+            pitems = PItemModel.query.filter_by(taskid=task.taskid).all()
+            for pitem in pitems:
+                if pitem.craftid:
+                    all_craft_ids.add(pitem.craftid)
+
+        # 进行所有相关任务单状态的变更
+        target_status = '已结束' if force else '已完成'
+        current_time = datetime.now()
+        
+        for task in tasks:
+            task.taskstatus = target_status
+            task.altertime = current_time
+            task.alteruser = username
+            
+        # 先将当前改动 flush 注入会话上下文中（防止下面校验把上面修改的任务算在`进行中`里面）
+        db.session.flush()
+
+        # 对用过的工艺进行核查
+        for craft_id in all_craft_ids:
+            # 统计：除了当前已被变更状态的任务外，还有没有【进行中】的任务所属的 PItem 正在使用该 craft_id
+            ongoing_usage_count = db.session.query(func.count(PItemModel.itemid)).join(
+                TOPModel, PItemModel.taskid == TOPModel.taskid
+            ).filter(
+                PItemModel.craftid == craft_id,
+                TOPModel.taskstatus == '进行中'
+            ).scalar()
+
+            # 如果其他进行中的任务没有在使用此工艺，则设为“未使用”
+            if ongoing_usage_count == 0:
+                craft = CraftModel.query.filter_by(craftid=craft_id).first()
+                if craft:
+                    craft.usagestatus = '未使用'
+                    craft.altertime = current_time
+                    craft.alteruser = username
+
+        db.session.commit()
+        return jsonify({'code': 200, 'msg': f'任务终止成功，状态已更为：{target_status}！'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'code': 500, 'msg': f'执行失败：{str(e)}'})
+    
+
+@taskmodule_bp.route('/report')
+@login_required
+def report():
+    query = PReportModel.query.order_by(PReportModel.reporttime.desc())
+
+    if session.get('charactercode') != 'GAdmin':
+        query = query.filter(PReportModel.reporter == session.get('username'))
+        
+    reports = query.all()
+
+    return render_template('report.html', reports=reports)

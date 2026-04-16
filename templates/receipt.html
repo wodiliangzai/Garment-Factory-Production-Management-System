@@ -22,7 +22,7 @@
                     <h5>操作</h5>
                 </div>
                 <div class="widget-content"> 
-                    {% if session['charactercode'] == 'GAdmin' or session['charactercode'] == 'GPurchaser' %} <a href="#" id="btn-inbound" class="btn btn-success"><i class="icon-upload"></i> 入库</a> {% endif %} <a href="#" class="btn btn-warning"><i class="icon-paste"></i> 导出</a> <a href="{{ url_for('storage.receipt')}}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
+                    {% if session['charactercode'] == 'GAdmin' or session['charactercode'] == 'GPurchaser' %} <a href="#" id="btn-inbound" class="btn btn-success"><i class="icon-upload"></i> 入库</a> {% endif %} <a href="{{ url_for('storage.receipt')}}" class="btn btn-info"><i class="icon-repeat"></i> 刷新</a>
                 </div>
             </div>
             <div class="widget-box">

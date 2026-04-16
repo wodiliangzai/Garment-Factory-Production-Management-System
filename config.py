@@ -9,6 +9,11 @@ DATABASE = "GDatabase"  # 要访问的数据库名称
 DB_URI = f'mssql+pymssql://{USERNAME}:{PASSWORD}@{HOST}/{DATABASE}?charset=utf8'
 # SQLALCHEMY_DATABASE_URI配置项，设置数据库的连接URI，让SQLAlchemy知道如何连接数据库
 SQLALCHEMY_DATABASE_URI = DB_URI
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,
+    "pool_recycle": 1800,
+    "pool_timeout": 30
+}
 
 #邮箱配置
 MAIL_SERVER="smtp.qq.com"

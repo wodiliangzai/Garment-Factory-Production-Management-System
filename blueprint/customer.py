@@ -2,7 +2,7 @@ from flask import Blueprint,render_template,jsonify,redirect,url_for,session,req
 from datetime import datetime
 import string
 from exts import db
-from models import SOHeaderModel,SOLineModel,MaterialModel
+from models import SOHeaderModel,SOLineModel,MaterialModel,InventoryModel
 import openpyxl
 from snowflake import SnowflakeGenerator
 from decorators import login_required,admin_required
@@ -101,6 +101,11 @@ def import_so():
         
         orderdate = parse_date(orderdate_val)
         deliverydate = parse_date(deliverydate_val)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        deliverydate_midnight = deliverydate.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if deliverydate_midnight <= today:
+            raise Exception("导入失败：要求交货日期必须在今天之后！")
 
         header = SOHeaderModel(
             orderid=orderid,
@@ -185,3 +190,60 @@ def import_so():
         flash(f'添加数据失败: {str(e)}', 'error')
 
     return redirect(url_for('customer.somanage'))
+
+#交付订单操作
+@customer_bp.route('/deliver_so', methods=['POST'])
+@login_required
+@admin_required
+def deliver_so():
+    data = request.get_json()
+    orderid = data.get('orderid')
+    
+    soheader = SOHeaderModel.query.filter_by(orderid=orderid).first()
+    if not soheader:
+        return jsonify({'status': 'error', 'msg': '订单不存在！'})
+        
+    if soheader.orderstatus == '已交付':
+        return jsonify({'status': 'error', 'msg': '该订单已交付！'})
+
+    shortages = []
+    
+    # 1. 检查各行物料的总库存是否满足需求
+    for line in soheader.solines:
+        # 统计该物料在所有仓库中的库存总和
+        total_inventory = db.session.query(db.func.sum(InventoryModel.quantity)).filter_by(materialcode=line.materialcode).scalar() or 0
+        
+        if total_inventory < line.quantity:
+            shortage = line.quantity - total_inventory
+            shortages.append(f"【{line.gmaterial.materialdesc}】(编码:{line.materialcode}) 需求:{line.quantity}，缺少:{shortage}")
+            
+    # 如果存在缺少的物料，则直接返回错误信息
+    if shortages:
+        return jsonify({'status': 'error', 'msg': '库存不足无法交付，具体缺少如下：\n' + '\n'.join(shortages)})
+        
+    # 2. 如果满足条件，扣减对应物料的库存（按现有库存从多到少优先扣除）
+    try:
+        for line in soheader.solines:
+            remaining_to_deduct = line.quantity
+            inventories = InventoryModel.query.filter_by(materialcode=line.materialcode).order_by(InventoryModel.quantity.desc()).all()
+            
+            for inv in inventories:
+                if remaining_to_deduct <= 0:
+                    break
+                if inv.quantity >= remaining_to_deduct:
+                    inv.quantity -= remaining_to_deduct
+                    remaining_to_deduct = 0
+                else:
+                    remaining_to_deduct -= inv.quantity
+                    inv.quantity = 0
+                inv.altertime = datetime.now()
+                
+        # 更新订单状态与完成时间
+        soheader.orderstatus = '已交付'
+        soheader.completion = datetime.now()
+        
+        db.session.commit()
+        return jsonify({'status': 'success', 'msg': '交付成功！'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'msg': f'数据库更新失败：{str(e)}'})

@@ -1,5 +1,5 @@
 from flask import Blueprint,render_template,jsonify,redirect,url_for,session,request,render_template_string,flash
-from forms import LoginForm,UpdateuserForm,AdduserForm,ForgotpwdForm,AddcharacterForm,AltercharacterForm,AddPermissionForm, AlterPermissionForm
+from forms import LoginForm,UpdateuserForm,AdduserForm,ForgotpwdForm,AddcharacterForm,AltercharacterForm,AddPermissionForm,AlterPermissionForm,ChangePwdForm,PersonInfoForm
 from werkzeug.security import generate_password_hash,check_password_hash #加密与检查密码
 from PIL import Image, ImageDraw, ImageFont
 import random
@@ -385,3 +385,71 @@ def alterpermission(username):
     else:
         errors = "; ".join([msg for sublist in alterpermissionform.errors.values() for msg in sublist])
         return jsonify({'code': 400, 'msg': errors})
+
+#更新密码
+@user_bp.route('/changepwd',methods=['GET','POST'])
+@login_required
+def changepwd():
+    form = ChangePwdForm()
+    
+    # 获取当前的用户名自动填充
+    session_username = session.get('username') 
+
+    if request.method == 'GET':
+        form.username.data = session_username
+        return render_template('changepwd.html', form=form)
+        
+    if form.validate_on_submit():
+        user = UserModel.query.filter_by(username=session_username).first()
+        # 检验原始密码是否正确
+        if not user or not check_password_hash(user.password, form.old_password.data):
+            flash("原密码错误", "error")
+            return render_template('changepwd.html', form=form)
+        
+        # 将新密码进行哈希加密并且存入数据库
+        user.password = generate_password_hash(form.new_password.data)
+        db.session.commit()      
+        flash("密码修改成功!", "success")
+    else:
+        # 表单验证未通过，把错误信息也通过 flash 返回去
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(error, "error")
+                
+    # 填充验证失败返回后的旧数据用户名
+    form.username.data = session_username 
+    return render_template('changepwd.html', form=form)
+
+@user_bp.route('/personinfo', methods=['GET', 'POST'])
+@login_required
+def personinfo():
+    form = PersonInfoForm()
+    
+    # 获取当前登录用户名
+    session_username = session.get('username')
+    user = UserModel.query.filter_by(username=session_username).first()
+
+    if request.method == 'GET':
+        # 页面加载时填入现有数据
+        form.username.data = user.username
+        form.realname.data = user.realname
+        form.email.data = user.email
+        return render_template('personinfo.html', form=form)
+        
+    if form.validate_on_submit():
+        # 表单验证通过，更新数据并提交
+        user.realname = form.realname.data
+        user.email = form.email.data
+        db.session.commit()
+        
+        flash("个人信息修改成功", "success")
+        return redirect(url_for('user.personinfo'))
+    else:
+        # 表单验证未通过，把错误信息也通过 flash 返回去
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(error, "error")
+                
+    # 填充验证失败返回后的旧数据用户名
+    form.username.data = session_username 
+    return render_template('personinfo.html', form=form)

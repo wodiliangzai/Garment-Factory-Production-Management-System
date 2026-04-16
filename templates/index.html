@@ -11,6 +11,55 @@
 <div id="content-header">
     <div id="breadcrumb"> <a href="{{ url_for('home') }}" title="返回首页" class="current"><i class="icon-home"></i> 首页</a></div>
 </div>
+<div class="container-fluid">
+    <div class="row-fluid">
+      <div class="span12">
+        <div class="widget-box">
+            <div class="widget-title"><span class="icon"> <i class="icon-ok-sign"></i> </span>
+                <h5>进行中的任务</h5>
+            </div>
+            {% if tasks_data %}
+                {% for taskname, taskinfo in tasks_data.items() %}
+                <h3 style="margin-left:13px;">任务名称：{{ taskname }}</h3>
+                <h4 style="margin-left:13px;">下达时间：{{ taskinfo.altertime }}</h4>
+                <h4 style="margin-left:13px;">完成时间：{{ taskinfo.finishtime }}</h4>
+                <div class="widget-content">
+                    <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                        <th style="width: 20%;">物料编码</th>
+                        <th style="width: 20%;">物料描述</th>
+                        <th style="width: 10%;">需要完成数量</th>
+                        <th style="width: 50%;">进度</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in taskinfo.task_items %}
+                        <tr>
+                        <td>{{ item.materialcode }}</td>
+                        <td>{{ item.materialdesc }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>
+                            <!-- 根据进度动态更改样式以及进度条长度 -->
+                            <div class="progress progress-striped progress-success active" style="margin-bottom: 0;">
+                                <div class="bar" style="width: {{ item.progress }}%; color: black;">{{ item.progress }}%</div>
+                            </div>
+                        </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="widget-content">
+                    <h4 style="text-align: center;">暂无需要您处理的任务</h4>
+                </div>
+            {% endif %}
+        </div>
+      </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block script %}

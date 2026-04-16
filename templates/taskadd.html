@@ -10,7 +10,7 @@
 
 {% block body %}
 <div id="content-header">
-    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.taskmanage')}}" class="tip-bottom"><i class="icon-th-list"></i> 生产任务列表</a> <a href="{{ url_for('product.taskadd')}}" class="current"><i class="icon-cogs"></i> 任务创建</a> </div>
+    <div id="breadcrumb"> <a href="{{ url_for('home')}}" title="返回首页" class="tip-bottom"><i class="icon-home"></i> 首页</a> <a href="{{ url_for('product.taskmanage')}}" class="tip-bottom"><i class="icon-th-list"></i> 任务管理</a> <a href="{{ url_for('product.taskadd')}}" class="current"><i class="icon-cogs"></i> 任务创建</a> </div>
     <h1>生产任务创建</h1>
 </div>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -112,8 +112,23 @@
 <script src="{{url_for('static',filename='js/matrix.form_validation.js')}}"></script>
 <script src="{{url_for('static',filename='js/bootstrap-datepicker.js')}}"></script>
 <script type="text/javascript">
-  // 初始化 Datepicker
-  $('.datepicker').datepicker();
+  var tomorrow = new Date();
+  tomorrow.setHours(0, 0, 0, 0); 
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  // 2. 初始化 Datepicker
+  $('.datepicker').datepicker().on('changeDate', function(ev) {
+      // 3. 拦截：如果选中的日期小于明天，则抛出警告
+      if (ev.date.valueOf() < tomorrow.valueOf()) {
+          alert('不允许选择今天及以前的日期，已自动重置！');
+          
+          // 强行将非法选择重置为明天的日期
+          $(this).datepicker('setValue', tomorrow);
+          
+          // 可选：选中后自动关闭日历面板
+          // $(this).datepicker('hide'); 
+      }
+  });
 
   $(document).ready(function() {
       // 修改：增加 desc 字段作为物料描述

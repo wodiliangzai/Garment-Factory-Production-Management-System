@@ -87,6 +87,11 @@
                                 <tr>
                                     <td>申请单状态：{{ prheader.prstatus }}</td>
                                 </tr>
+                                {% if prheader.opinion %}
+                                <tr>
+                                    <td>审批意见：{{ prheader.opinion }}</td>
+                                </tr>
+                                {% endif %}
                                 <tr>
                                     <td>
                                         {% if prheader.applicant == session['username'] and prheader.prstatus!='待审核' and prheader.prstatus!='已处理' %}
@@ -661,7 +666,7 @@ $(document).ready(function() {
         });
     });
 
-    $("#btn-back").click(function() {
+    $("#btn-back, #btn-issue").click(function() {
         var errorMessages = [];
 
         // 1. 检查表头是否处于编辑状态 (检查保存按钮是否显示)

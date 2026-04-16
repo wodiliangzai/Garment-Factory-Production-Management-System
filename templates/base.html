@@ -23,9 +23,9 @@
   <ul class="nav">
     <li  class="dropdown" id="profile-messages" ><a title="" href="#" data-toggle="dropdown" data-target="#profile-messages" class="dropdown-toggle"><i class="icon icon-user"></i>  <span class="text">个人信息</span><b class="caret"></b></a>
       <ul class="dropdown-menu">
-        <li><a href="#"><i class="icon-user"></i> 信息修改</a></li>
+        <li><a href="/user/personinfo"><i class="icon-user"></i> 信息修改</a></li>
         <li class="divider"></li>
-        <li><a href="#"><i class="icon-check"></i> 更改密码</a></li>
+        <li><a href="/user/changepwd"><i class="icon-lock"></i> 更改密码</a></li>
       </ul>
     </li>
     <li class=""><a title="" href="/user/logout"><i class="icon icon-share-alt"></i> <span class="text">退出登录</span></a></li>
@@ -70,7 +70,7 @@
     {% if session['charactercode'] == 'GAdmin' %}
     <li><a href="/customer/somanage"><i class="icon-edit"></i> <span>客单管理</span></a></li>
     {% endif %}
-    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产管理</span> <span class="label label-important">4</span></a>
+    <li class="submenu"> <a href="#"><i class="icon-tasks"></i> <span>生产管理</span> <span class="label label-important">5</span></a>
       <ul>
         <li><a href="/product/processmanage"><i class="icon-sitemap"></i> 生产工艺</a></li>
         {% if session['charactercode'] == 'GAdmin' %}
@@ -80,6 +80,7 @@
         {% if session['charactercode'] == 'GAdmin' or session['keycode'] == 1 %}
         <li><a href="/taskmodule/reportingreview"><i class="icon-check-empty"></i> 报产记录审核</a></li>
         {% endif %}
+        <li><a href="/taskmodule/report"><i class="icon-stop"></i> 报产记录查询</a></li>
       </ul>
     </li>
   </ul>

@@ -65,6 +65,26 @@
         </div>
     </div>
 </div>
+<div id="rejectModal" class="modal hide fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3>输入驳回理由</h3>
+    </div>
+    <div class="modal-body">
+        <div class="row-fluid">
+            <div class="span12">
+                <textarea id="rejectReason" class="span11" placeholder="请在此输入批量驳回的统一理由..." rows="5" style="margin-left: 15px; resize: vertical; min-height: 100px;"></textarea>
+                <div style="margin-left: 15px;">
+                    <span id="rejectReasonError" style="color: #b94a48; display: none; margin-top: 5px;">请填写驳回理由！</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">取消</button>
+        <button class="btn btn-danger" id="btnConfirmReject">确定</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block script %}
@@ -136,39 +156,72 @@ $(document).ready(function() {
     if ($.uniform) $.uniform.update($cbs);
   });
 
+  var selectedPrcodesForReject = [];
+  var jumpAfterClose = false;
+
   $(document).on('click', '#btnReject', function(e) {
     e.preventDefault();
 
-    var prcodes = $table.find('input.row-checkbox[data-uniform-scope="dt"]:checked')
+    selectedPrcodesForReject = $table.find('input.row-checkbox[data-uniform-scope="dt"]:checked')
       .map(function() { return this.value; })
       .get()
       .filter(Boolean);
 
-    if (!prcodes.length) {
+    if (!selectedPrcodesForReject.length) {
       alert('请勾选需要驳回的申请');
       return;
     }
 
-    if (!confirm('确认驳回所选 ' + prcodes.length + ' 条采购申请？')) return;
+    // 重置内容和错误提示
+    $('#rejectReason').val('');
+    $('#rejectReasonError').hide();
+    
+    // 显示弹窗
+    $('#rejectModal').modal('show');
+  });
 
-    $.ajax({
-      url: "{{ url_for('procurement.pr_reject') }}",
-      type: 'POST',
-      contentType: 'application/json; charset=utf-8',
-      dataType: 'json',
-      data: JSON.stringify({ prcodes: prcodes }),
-      success: function(res) {
-        if (res && res.code === 200) {
-          alert(res.msg || '驳回成功');
-          window.location.reload(); // 简单直接：刷新列表
-        } else {
-          alert((res && res.msg) ? res.msg : '驳回失败');
-        }
-      },
-      error: function(xhr) {
-        alert('请求失败：' + (xhr.responseText || xhr.status));
+  // 弹窗确认按钮逻辑
+  $('#btnConfirmReject').click(function() {
+    var reason = $('#rejectReason').val();
+
+    if ($.trim(reason) === "") {
+        $('#rejectReasonError').show();
+        $('#rejectReason').focus();
+    } else {
+        $('#rejectReasonError').hide();
+
+        $.ajax({
+            url: "{{ url_for('procurement.pr_reject') }}",
+            type: 'POST',
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json',
+            data: JSON.stringify({ 
+                prcodes: selectedPrcodesForReject,
+                opinion: reason 
+            }),
+            success: function(res) {
+                if (res && res.code === 200) {
+                    alert(res.msg || '驳回成功');
+                    jumpAfterClose = true;
+                    $('#rejectModal').modal('hide');
+                } else {
+                    alert((res && res.msg) ? res.msg : '驳回失败');
+                }
+            },
+            error: function(xhr) {
+                alert('请求失败：' + (xhr.responseText || xhr.status));
+            }
+        });
+    }
+  });
+
+  // 弹窗完全关闭后刷新列表
+  $('#rejectModal').on('hidden', function () {
+      if (jumpAfterClose) {
+          setTimeout(function() {
+              window.location.reload();
+          }, 300);
       }
-    });
   });
   
   $(document).on('click', '#btnApprove', function(e) {

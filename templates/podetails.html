@@ -96,4 +96,39 @@
 
 {% block script %}
 <script src="{{url_for('static',filename='js/jquery.ui.custom.js')}}"></script>
+<script>
+$(document).ready(function() {
+    // 绑定下单按钮点击事件
+    $('#btn-audit-application').click(function() {
+        // 直接通过 Jinja2 获取当前订单编号
+        var poCode = "{{ poheader.pocode }}";
+        
+        if (!confirm('确定要对订单 ' + poCode + ' 进行下单操作吗？')) {
+            return;
+        }
+
+        $.ajax({
+            url: "{{ url_for('procurement.po_place_order') }}",
+            type: "POST",
+            contentType: "application/json",
+            // 后端接收的是列表，所以我们将单个编号放入数组中提交
+            data: JSON.stringify({ pocodes: [poCode] }),
+            success: function(response) {
+                if (response.code === 200) {
+                    alert(response.msg);
+                    // 下单成功后，刷新当前页面（状态会更新，下单按钮会自动隐藏）
+                    window.location.reload(); 
+                    // 如果你想让它成功后返回列表页，请注释上一行，并取消下面这行的注释：
+                    // window.location.href = "{{ url_for('procurement.pomanage') }}";
+                } else {
+                    alert(response.msg);
+                }
+            },
+            error: function(xhr, status, error) {
+                alert('系统错误: ' + error);
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

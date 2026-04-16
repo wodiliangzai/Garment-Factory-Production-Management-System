@@ -153,3 +153,19 @@ class AlterPermissionForm(FlaskForm):
     charactercode=SelectField('所属角色')
     role_desc=IntegerField('权限编号',validators=[NumberRange(min=0, max=1)])
     alter=SubmitField('修改权限',render_kw={'class':'btn btn-primary'})
+
+class ChangePwdForm(FlaskForm):
+    username = StringField('用户名', render_kw={'readonly': True})
+    old_password = PasswordField('原密码', render_kw={'placeholder': '请输入原密码'}, validators=[DataRequired(message='请输入原密码')])
+    new_password = PasswordField('新密码', render_kw={'placeholder': '请输入新密码'}, validators=[DataRequired(message='请输入新密码')])
+    confirm_password = PasswordField('两次密码', render_kw={'placeholder': '请再次输入新密码'}, validators=[
+        DataRequired(message='请输入确认新密码'),
+        EqualTo('new_password', message='两次输入的新密码不一致')
+    ])
+    submit = SubmitField('修改密码', render_kw={'id': 'next', 'class': 'btn btn-primary'})
+
+class PersonInfoForm(FlaskForm):
+    username = StringField('用户名', render_kw={'readonly': True})
+    realname = StringField('真实姓名', render_kw={'placeholder': '请输入真实姓名'}, validators=[DataRequired(message='请输入真实姓名')])
+    email = EmailField('邮箱', render_kw={'placeholder': '请输入邮箱'}, validators=[DataRequired(message='请输入邮箱'), Email(message='邮箱格式不正确')])
+    submit = SubmitField('保存修改', render_kw={'id': 'next', 'class': 'btn btn-primary'})

@@ -1,6 +1,7 @@
 from flask import Blueprint,render_template,json,jsonify,redirect,url_for,session,request,render_template_string,flash
 from datetime import datetime
 import string
+import openpyxl
 from exts import db
 from models import UserModel,SupplierModel,MaterialModel,PRHeaderModel,PRLineModel,POHeaderModel,POLineModel,ReceiptModel
 from forms import AddsupplierForm,AltersupplierForm
@@ -165,6 +166,94 @@ def submit_pr():
         db.session.rollback()
         print(f"Error in submit_pr: {e}")
         return jsonify({'code': 500, 'msg': f'系统错误: {str(e)}'})
+
+#导入采购申请
+@procurement_bp.route('/import_pr', methods=['POST'])
+@login_required
+def import_pr():
+    file = request.files.get('file')
+    if not file:
+        flash('请选择文件', 'error')
+        return redirect(url_for('procurement.prmanage'))
+
+    try:
+        wb = openpyxl.load_workbook(file)
+        ws = wb.active
+
+        reason = ws['B2'].value
+        prsupplier = ws['B3'].value
+
+        if not reason: raise Exception("未找到【申请理由】")
+        if not prsupplier: raise Exception("未找到【供应商编码】")
+
+        supplier = SupplierModel.query.filter_by(suppliercode=prsupplier).first()
+        if not supplier:
+            raise Exception(f"导入失败：供应商编码 '{prsupplier}' 在系统中不存在。")
+
+        sql = text("""
+            DECLARE @out_prcode nvarchar(50);
+            EXEC dbo.usp_InsertGPRHeader 
+                @reason = :reason, 
+                @applicant = :applicant, 
+                @prsupplier = :prsupplier, 
+                @prcode = @out_prcode OUTPUT;
+            SELECT @out_prcode;
+        """)
+        
+        result = db.session.execute(sql, {
+            'reason': str(reason).strip(),
+            'applicant': session.get('username'),
+            'prsupplier': str(prsupplier).strip()
+        }).fetchone()
+        
+        if not result or not result[0]:
+            raise Exception("生成采购申请单号失败")
+            
+        new_prcode = result[0]
+
+        start_row = 5
+        row_index = start_row
+        line_count = 0
+
+        while True:
+            code_cell_val = ws.cell(row=row_index, column=1).value
+            
+            if not code_cell_val:
+                break
+
+            materialcode = str(code_cell_val).strip()
+            
+            try:
+                qty = int(ws.cell(row=row_index, column=3).value)
+            except (ValueError, TypeError):
+                raise Exception(f"第 {row_index} 行的数据格式错误（数量必须为整数）")
+
+            material = MaterialModel.query.filter_by(materialcode=materialcode).first()
+            if not material:
+                raise Exception(f"导入失败：第 {row_index} 行的物料编码 '{materialcode}' 在系统中不存在。")
+            
+            new_line = PRLineModel(
+                prcode=new_prcode,
+                prmaterial=materialcode,
+                quantity=qty
+            )
+            db.session.add(new_line)
+            
+            line_count += 1
+            row_index += 1
+
+        if line_count == 0:
+            raise Exception("未在模板中读取到任何有效的单行数据。")
+
+        db.session.commit()
+        flash(f'采购申请导入成功！添加的申请单号为：{str(new_prcode)}', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        flash(f'添加数据失败: {str(e)}', 'error')
+
+    return redirect(url_for('procurement.prmanage'))
 
 #采购申请详情    
 @procurement_bp.route('/prinfo/<string:pr_code>')
@@ -344,6 +433,7 @@ def issue_pr(pr_code):
 def pr_reject():
     data = request.get_json(silent=True) or {}
     prcodes = data.get('prcodes') or []
+    opinion = data.get('opinion')
     # 基本校验
     if not isinstance(prcodes, list) or not prcodes:
         return jsonify({'code': 400, 'msg': '请勾选需要驳回的申请'})
@@ -359,6 +449,8 @@ def pr_reject():
 
         for h in headers:
             h.prstatus = '驳回'
+            if opinion is not None:
+                h.opinion = opinion
 
         db.session.commit()
         return jsonify({'code': 200, 'msg': f'已驳回 {len(headers)} 条采购申请'})
